@@ -1,0 +1,147 @@
+---
+title: "Trabajo Práctico 3"
+format: html
+---
+
+Objetivo: medir directamente la gravedad en un planeta recién descubierto, el Planeta X.
+
+
+```{r}
+#| message: false
+library(tidyverse)
+library(rstan)
+datos_marte <- read_csv("tp3_marte.csv")
+datos_tierra <- read_csv("tp3_tierra.csv")
+datos_planetax <- read_csv("tp3_planetax.csv")
+```
+
+```{r}
+ggplot(data = datos_planetax) + 
+  geom_point(aes(x=t, y=x_t)) +
+  theme_bw()
+```
+# 2
+
+La relación es:
+$$\begin{cases}
+x_0 = \beta_0 \\
+v_0 = \beta_1 \\
+\frac12a=\beta_2\\
+\end{cases}$$
+
+$$\begin{cases}
+t = X_1 \\
+t^2 = X_2 \\
+x_{f,i} = \mu_i \\
+\end{cases}$$
+
+# 3
+
+El modelo lineal a utilizar es:
+$$
+\begin{aligned}
+Y_i \mid x_{f,i}, \sigma &\sim \text{Normal}(x_{f,i}; \sigma^2) & i = 1, \cdots, 12 \\\\
+x_{f,i}  = &\beta_0 + \beta_1 t_i + \beta_2 t_i^2
+\end{aligned}
+$$
+# Ajustamos el modelo con priors uniformes
+
+```{r}
+
+modelo1 <- "
+data {
+  int<lower=0> N;  // Cantidad de observaciones
+  vector[N] t;     // Valores de la variable predictora
+  vector[N] y;     // Valores de la variable respuesta
+}
+parameters {
+  real beta0;           // Intercepto
+  real beta1;           // Pendiente
+  real beta2;           // Pendiente
+  real<lower=0> sigma;  // Desvio estándar del error
+}
+model {
+  y ~ normal(beta0 + beta1 * t + beta2 * t^2, sigma);
+}"
+
+stan_data_1 <- list(
+  N = nrow(datos_planetax),
+  t = datos_planetax$t,    
+  y = datos_planetax$x_t   
+)
+
+modelo_1 <- stan_model(model_code = modelo1)
+
+modelo_1_fit <- sampling(
+  modelo_1,             
+  data = stan_data_1,   
+  chains = 4,           
+  seed = 82,          
+  refresh = 0,          
+)
+
+modelo_1_fit
+```
+```{r}
+muestras_params_1 <- as.data.frame(extract(modelo_1_fit)) %>% 
+  select(!lp__)
+```
+
+
+```{r}
+muestras_params_1l <- muestras_params_1 %>% 
+  pivot_longer(c("beta0", "beta1", "beta2", "sigma"), names_to = "parametro")
+
+ggplot(muestras_params_1l) +
+  geom_histogram(
+    aes(x = value, y = after_stat(density)), 
+    bins = 30, 
+    fill = "#12BC81", 
+    color = "#12BC81"
+) +
+  facet_wrap(~ parametro, scales = "free") +
+  labs(x = "Valor", y = "Densidad") +
+  theme_bw()
+```
+
+```{r}
+set.seed(5)
+beta0 <- muestras_params_1 %>% slice_sample(n = 40) %>% rowbind(mean(beta0)) %>% pull(beta0) 
+set.seed(5)
+beta1 <- muestras_params_1 %>% slice_sample(n = 40) %>% pull(beta1)
+set.seed(5)
+beta2 <- muestras_params_1 %>% slice_sample(n = 40) %>% pull(beta2)
+
+# Crear dataframe con todas combinaciones: tiempo y curva
+curva <- expand.grid(
+  t_f = datos_planetax$t,
+  i = 1:40
+) %>%
+  mutate(
+    beta0 = beta0[i],
+    beta1 = beta1[i],
+    beta2 = beta2[i],
+    x_f = beta0 + beta1 * t_f + beta2 * t_f^2
+  )
+
+beta0_mean <- mean(muestras_params_1$beta0)
+beta1_mean <- mean(muestras_params_1$beta1)
+beta2_mean <- mean(muestras_params_1$beta2)
+
+# Curva con coeficientes medios
+curva_media <- data.frame(
+  t_f = datos_planetax$t,
+  x_f = beta0_mean + beta1_mean * datos_planetax$t + beta2_mean * datos_planetax$t^2
+)
+
+ggplot() +
+  geom_point(data = datos_planetax, aes(x = t, y = x_t), color = "black", alpha = 0.7, size = 2) +
+  geom_line(data = curva, aes(x = t_f, y = x_f, group = i), alpha = 0.3, color = "lightblue") +
+  geom_line(data = curva_media, aes(x = t_f, y = x_f), color = "blue", size = 1) +
+  theme_bw() +
+  labs(x = "Tiempo (en segundos)", y = "Altura (en metros)")
+
+```
+
+
+
