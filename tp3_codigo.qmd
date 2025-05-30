@@ -252,9 +252,7 @@ beta1 normal(8, 1)
 grav marte 3.73 grav tierra 9.807 media 6.7685
 
 beta2 normal(-5, 2)
-```{r}
-```
-
 
 ```{r}
 ```
+
