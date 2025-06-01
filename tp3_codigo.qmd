@@ -1,18 +1,20 @@
 ---
 title: "Trabajo Práctico 3"
 format: html
+editor: 
+  markdown: 
+    wrap: 72
 ---
 
 Objetivo: medir directamente la gravedad en un planeta recién descubierto, el Planeta X.
 
-
 ```{r}
 #| message: false
+library(dplyr)
 library(tidyverse)
 library(rstan)
 library(patchwork)
 ```
-
 
 ```{r}
 datos_marte <- read_csv("tp3_marte.csv")
@@ -25,9 +27,10 @@ ggplot(data = datos_planetax) +
   geom_point(aes(x=t, y=x_t)) +
   theme_bw()
 ```
+
 # 2
 
-La relación es:
+La relación es: 
 $$\begin{cases}
 x_0 = \beta_0 \\
 v_0 = \beta_1 \\
@@ -42,14 +45,49 @@ t^2 = X_2 \\
 
 # 3
 
-El modelo lineal a utilizar es:
+El modelo lineal a utilizar es: 
+
 $$
 \begin{aligned}
 Y_{t_i} \mid \mu_{t_i}, \sigma &\sim \text{Normal}(\mu_{t_i}; \sigma^2) & i = 1, \cdots, 12 \\\\
 \mu_{t_i}  = &\beta_0 + \beta_1 t_i + \beta_2 t_i^2
 \end{aligned}
+$$ 
+
+# Modelo 1: Regresión Cuadrática Bayesiana con priors uniformes
+
+Este modelo tiene como objetivo describir la relación entre tiempo
+transcurrido desde el inicio de la observación (en segundos) denotada
+como $t$ y posición vertical final de la pelota después de un tiempo $t$
+(en metros) denotada como $y$, a través de una regresión cuadrática con
+errores normales. La estimación se realiza bajo el enfoque bayesiano
+utilizando el lenguaje probabilístico **Stan**, a través del muestreo
+por cadenas de Markov (MCMC).
+
+## Especificación del modelo
+
+El modelo asume que la relación entre $y$ y $t$ puede ser representada
+mediante una función cuadrática, es decir:
+
 $$
-# Ajustamos el modelo con priors uniformes
+y_i \sim \mathcal{N}(\mu_i, \sigma), \quad \text{donde} \quad \mu_i = \beta_0 + \beta_1 t_i + \beta_2 t_i^2
+$$
+
+donde:
+
+-   $y_i$: valor observado de la posición vertical final de la pelota
+    después de un tiempo $y_i$ (en metros).
+-   $\beta_0$: posición vertical inicial de la pelota en $t_i=0$ (en
+    metros).
+-   $\beta_1$: velocidad inicial de la pelota al comienzo del intervalo
+    de tiempo $t_i$ (en metros por segundo).
+-   $\beta_2$: el doble de la aceleración constante que experimenta la
+    pelota (en metros por segundo al cuadrado).
+-   $\sigma$: desviación estándar del error.
+-   $t_i$: tiempo transcurrido desde el inicio de la observación (en
+    segundos).
+
+## Código en Stan
 
 ```{r}
 modelo1 <- "
@@ -98,10 +136,21 @@ modelo_1_fit <- sampling(
 
 modelo_1_fit
 ```
+
 ```{r}
 muestras_params_1 <- as.data.frame(extract(modelo_1_fit)) %>% 
   select(c(beta0,beta1,beta2,sigma))
 ```
+
+En este modelo se utilizaron **priors no informativos**, permitiendo que
+los datos tengan un rol principal en la actualización de la distribución a
+posteriori. Por lo que, los priors utilizados son:
+
+-   Para $\beta_0$, $\beta_1$ y $\beta_2$: priors uniformes, el plano se encuentra sobre los reales.
+
+-   Y para $\sigma$: un prior uniforme, el plano se encuentra sobre los reales positivos.
+
+Luego de ajustar el modelo bayesiano a los datos obtenidos en el experimento del Planeta X, se generaron muestras de la distribución predictiva a posteriori de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar **chequeos de ajuste** (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datoS, es decir se analizaron las distribuciones marginales a posteriori de los parámetros del modelo:
 
 
 ```{r}
@@ -123,6 +172,18 @@ ggplot(muestras_params_1l) +
   labs(x = "Valor", y = "Densidad") +
   theme_bw()
 ```
+
+Las siguientes gráficas muestran las distribuciones a posteriori de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas, lo que indica buena estabilidad del muestreo y una adecuada capacidad del modelo para aprender sobre los parámetros. En particular, se observa que:
+
+- El posterior de $a$ presenta una forma aproximadamente simétrica, concentrada en torno a un valor cercano a 6 $m/s^2$. Esto sugiere que la intensidad de la gravedad en el Planeta X es inferior a la terrestre (≈ 9.8 $m/s^2$), pero mayor a la de Marte (≈ 3.7 m/s²), lo cual resulta coherente con la posible masa y tamaño del planeta.
+
+- El posterior de la velocidad inicial estimada $v_0$ se concentra alrededor de 8 $m/s$, en línea con lo esperado según el entrenamiento previo del astronauta. La forma de la distribución es simétrica y estrecha, indicando baja incertidumbre y consistencia en el procedimiento de lanzamiento.
+
+- El posterior del valor de $x_0$ se sitúa en torno a los 10 metros, que coincide con la altura de la nave espacial The Bayesian desde donde se realizó el lanzamiento. Esta estimación es coherente con las condiciones iniciales conocidas del experimento.
+
+- A diferencia de las anteriores, el posterior de $\sigma$ es asimétrico y presenta una cola larga hacia la derecha. Esto indica que, aunque la mayor parte de la variabilidad del modelo es baja, existe cierta probabilidad de errores más grandes. Aun así, la mayor concentración cerca de valores bajos sugiere que el modelo logra ajustar bastante bien los datos observados.
+
+# ITEM 5
 
 ```{r}
 set.seed(5)
@@ -157,7 +218,7 @@ curva_media <- data.frame(
 
 ggplot() +
   geom_point(data = datos_planetax, aes(x = t, y = x_t), color = "black", alpha = 0.7, size = 2) +
-  geom_line(data = curva, aes(x = t_f, y = x_f, group = i), alpha = 0.7, color = "lightblue") +
+  geom_line(data = curva, aes(x = t_f, y = x_f, group = i), alpha = 0.4, color = "lightblue3") +
   geom_line(data = curva_media, aes(x = t_f, y = x_f), color = "blue", linewidth = 1) +
   theme_bw() +
   labs(x = "Tiempo (en segundos)", y = "Altura (en metros)")
@@ -200,7 +261,6 @@ ggplot(datos_planetax) +
   theme_bw()
 
 ```
-
 
 ```{r}
 y_pred_1 <- extract(modelo_1_fit, "y_rep")$y_rep
@@ -251,17 +311,15 @@ ggplot() +
   geom_point(data = datos_tierra, aes(x = t, y = x_t), color = "blue", alpha = 0.7, size = 2) +
   theme_bw()
 ```
+
 # ITEM 7
 
-$\beta_0\sim N(10,0.5)$
-$\beta_1\sim N(8,1)$
-$\beta_2\sim N(-4,1.5)$
+$\beta_0\sim N(10,0.5)$ $\beta_1\sim N(8,1)$ $\beta_2\sim N(-4,1.5)$
 $\sigma\sim N^+(1.5)$
 
 grav marte 3.73 grav tierra 9.807 media 6.7685
 
--0.5*(6.7685)
-
+-0.5\*(6.7685)
 
 ```{r}
 modelo2 <- "
@@ -337,7 +395,6 @@ priori <- data.frame(
 ) %>% arrange(i, t_grilla)
 ```
 
-
 ```{r}
 # Resumen por tiempo
 summary_priori <- priori %>%
@@ -371,11 +428,11 @@ ggplot(muestra, aes(x = y_pred_priori)) +
   theme_minimal()
 
 ```
+
 ```{r}
 muestras_params_2 <- as.data.frame(extract(modelo_2_fit)) %>% 
   select(c(beta0,beta1,beta2,sigma))
 ```
-
 
 ```{r}
 muestras_params_2l <- muestras_params_2 %>% mutate(beta2 = -2*beta2) %>% 
@@ -471,7 +528,6 @@ ggplot(datos_planetax) +
   ) +
   theme_bw()
 ```
-
 
 ```{r}
 y_pred_2 <- extract(modelo_2_fit, "y_rep2")$y_rep2
