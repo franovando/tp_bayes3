@@ -10,7 +10,6 @@ Objetivo: medir directamente la gravedad en un planeta recién descubierto, el P
 
 ```{r}
 #| message: false
-library(dplyr)
 library(tidyverse)
 library(rstan)
 library(patchwork)
@@ -54,14 +53,14 @@ Y_{t_i} \mid \mu_{t_i}, \sigma &\sim \text{Normal}(\mu_{t_i}; \sigma^2) & i = 1,
 \end{aligned}
 $$ 
 
-# Modelo 1: Regresión Cuadrática Bayesiana con priors uniformes
+# Modelo 1: Regresión Cuadrática Bayesiana con distribuciones **a priori** uniformes
 
 Este modelo tiene como objetivo describir la relación entre tiempo
 transcurrido desde el inicio de la observación (en segundos) denotada
 como $t$ y posición vertical final de la pelota después de un tiempo $t$
 (en metros) denotada como $y$, a través de una regresión cuadrática con
 errores normales. La estimación se realiza bajo el enfoque bayesiano
-utilizando el lenguaje probabilístico **Stan**, a través del muestreo
+utilizando el lenguaje probabilístico `Stan`, a través del muestreo
 por cadenas de Markov (MCMC).
 
 ## Especificación del modelo
@@ -75,8 +74,8 @@ $$
 
 donde:
 
--   $y_i$: valor observado de la posición vertical final de la pelota
-    después de un tiempo $y_i$ (en metros).
+-   $y_i$: valor observado de la posición vertical de la pelota
+    en el tiempo $t_i$ (en metros).
 -   $\beta_0$: posición vertical inicial de la pelota en $t_i=0$ (en
     metros).
 -   $\beta_1$: velocidad inicial de la pelota al comienzo del intervalo
@@ -142,33 +141,37 @@ muestras_params_1 <- as.data.frame(extract(modelo_1_fit)) %>%
   select(c(beta0,beta1,beta2,sigma))
 ```
 
-En este modelo se utilizaron **priors no informativos**, permitiendo que
+En este modelo se utilizaron distribuciones *a priori* no informativas, permitiendo que
 los datos tengan un rol principal en la actualización de la distribución a
-posteriori. Por lo que, los priors utilizados son:
+posteriori. Por lo que, las distribuciones *a priori* utilizadas son:
 
--   Para $\beta_0$, $\beta_1$ y $\beta_2$: priors uniformes, el plano se encuentra sobre los reales.
+-   Para $\beta_0$, $\beta_1$ y $\beta_2$: distribuciones *a priori* uniformes, el plano se encuentra sobre los reales.
 
--   Y para $\sigma$: un prior uniforme, el plano se encuentra sobre los reales positivos.
+-   Y para $\sigma$: un *prior* uniforme, el plano se encuentra sobre los reales positivos.
 
-Luego de ajustar el modelo bayesiano a los datos obtenidos en el experimento del Planeta X, se generaron muestras de la distribución predictiva a posteriori de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar **chequeos de ajuste** (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datoS, es decir se analizaron las distribuciones marginales a posteriori de los parámetros del modelo:
+Luego de ajustar el modelo bayesiano a los datos obtenidos en el experimento del Planeta X, se generaron muestras de la distribución predictiva a posteriori de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datoS, es decir se analizaron las distribuciones marginales a posteriori de los parámetros del modelo:
 
 
 ```{r}
-muestras_params_1l <- muestras_params_1 %>% mutate(beta2 = -2*beta2) %>% 
-  pivot_longer(c("beta0", "beta1", "beta2", "sigma"), names_to = "parametro") %>% 
-  mutate(parametro = case_when(parametro == "beta0" ~ "x0",
-                               parametro == "beta1" ~ "v0",
-                               parametro ==  "beta2" ~ "a",
-                               T ~ parametro))
+muestras_params_1l <- muestras_params_1 %>% mutate(beta2 = -2 * beta2) %>%
+  pivot_longer(c("beta0", "beta1", "beta2", "sigma"), names_to = "parametro") %>%
+  mutate(
+    parametro = case_when(
+      parametro == "beta0" ~ "x0",
+      parametro == "beta1" ~ "v0",
+      parametro ==  "beta2" ~ "a",
+      T ~ parametro
+    )
+  )
 
 ggplot(muestras_params_1l) +
   geom_histogram(
-    aes(x = value, y = after_stat(density)), 
-    bins = 30, 
-    fill = "#12BC81", 
+    aes(x = value, y = after_stat(density)),
+    bins = 30,
+    fill = "#12BC81",
     color = "#12BC81"
-) +
-  facet_wrap(~ parametro, scales = "free") +
+  ) +
+  facet_wrap( ~ parametro, scales = "free") +
   labs(x = "Valor", y = "Densidad") +
   theme_bw()
 ```
@@ -187,7 +190,7 @@ Las siguientes gráficas muestran las distribuciones a posteriori de los paráme
 
 ```{r}
 set.seed(5)
-beta0 <- muestras_params_1 %>% slice_sample(n = 40) %>% pull(beta0) 
+beta0 <- muestras_params_1 %>% slice_sample(n = 40) %>% pull(beta0)
 set.seed(5)
 beta1 <- muestras_params_1 %>% slice_sample(n = 40) %>% pull(beta1)
 set.seed(5)
@@ -195,10 +198,7 @@ beta2 <- muestras_params_1 %>% slice_sample(n = 40) %>% pull(beta2)
 
 
 # Crear dataframe con todas combinaciones: tiempo y curva
-curva <- expand.grid(
-  t_f = datos_planetax$t,
-  i = 1:40
-) %>%
+curva <- expand.grid(t_f = datos_planetax$t, i = 1:40) %>%
   mutate(
     beta0 = beta0[i],
     beta1 = beta1[i],
@@ -217,9 +217,25 @@ curva_media <- data.frame(
 )
 
 ggplot() +
-  geom_point(data = datos_planetax, aes(x = t, y = x_t), color = "black", alpha = 0.7, size = 2) +
-  geom_line(data = curva, aes(x = t_f, y = x_f, group = i), alpha = 0.4, color = "lightblue3") +
-  geom_line(data = curva_media, aes(x = t_f, y = x_f), color = "blue", linewidth = 1) +
+  geom_point(
+    data = datos_planetax,
+    aes(x = t, y = x_t),
+    color = "black",
+    alpha = 0.7,
+    size = 2
+  ) +
+  geom_line(
+    data = curva,
+    aes(x = t_f, y = x_f, group = i),
+    alpha = 0.4,
+    color = "lightblue3"
+  ) +
+  geom_line(
+    data = curva_media,
+    aes(x = t_f, y = x_f),
+    color = "blue",
+    linewidth = 1
+  ) +
   theme_bw() +
   labs(x = "Tiempo (en segundos)", y = "Altura (en metros)")
 
@@ -230,7 +246,7 @@ x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
 mu_matrix <- matrix(nrow = 4000, ncol = 100)
 
 for (i in seq_along(x_grid)) {
-    mu_matrix[, i] <- muestras_params_1$beta0 + muestras_params_1$beta1 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
+  mu_matrix[, i] <- muestras_params_1$beta0 + muestras_params_1$beta1 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
 }
 
 mu_mean <- apply(mu_matrix, 2, mean)
@@ -253,11 +269,7 @@ ggplot(datos_planetax) +
     data = data_mu
   ) +
   geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
-  geom_line(
-    aes(x, y),
-    color = "blue",
-    data = data_mu
-  ) +
+  geom_line(aes(x, y), color = "blue", data = data_mu) +
   theme_bw()
 
 ```
@@ -266,10 +278,9 @@ ggplot(datos_planetax) +
 y_pred_1 <- extract(modelo_1_fit, "y_rep")$y_rep
 yp_mean <- apply(y_pred_1, 2, mean)
 yp_qts <- t(apply(y_pred_1, 2, function(x) quantile(x, c(0.025, 0.975))))
-y_pred_1 <- matrix(y_pred_1,ncol = 1)
+y_pred_1 <- matrix(y_pred_1, ncol = 1)
 
-predicciones <- data.frame(t=rep(datos_planetax$t, each = 4000),
-                           y_pred_1)
+predicciones <- data.frame(t = rep(datos_planetax$t, each = 4000), y_pred_1)
 
 # Finalmente, se lamacenan los valores calculados en un data frame
 data_y_pred <- data.frame(
@@ -293,11 +304,7 @@ ggplot(datos_planetax) +
     alpha = 0.6,
     data = data_mu
   ) +
-    geom_line(
-    aes(x, y),
-    color = "blue",
-    data = data_mu
-  ) +
+  geom_line(aes(x, y), color = "blue", data = data_mu) +
   theme_bw()
 
 ```
@@ -306,9 +313,27 @@ ggplot(datos_planetax) +
 
 ```{r}
 ggplot() +
-  geom_point(data = datos_planetax, aes(x = t, y = x_t), color = "green", alpha = 0.7, size = 2) +
-  geom_point(data = datos_marte, aes(x = t, y = x_t), color = "red", alpha = 0.7, size = 2) +
-  geom_point(data = datos_tierra, aes(x = t, y = x_t), color = "blue", alpha = 0.7, size = 2) +
+  geom_point(
+    data = datos_planetax,
+    aes(x = t, y = x_t),
+    color = "green",
+    alpha = 0.7,
+    size = 2
+  ) +
+  geom_point(
+    data = datos_marte,
+    aes(x = t, y = x_t),
+    color = "red",
+    alpha = 0.7,
+    size = 2
+  ) +
+  geom_point(
+    data = datos_tierra,
+    aes(x = t, y = x_t),
+    color = "blue",
+    alpha = 0.7,
+    size = 2
+  ) +
   theme_bw()
 ```
 
@@ -379,9 +404,9 @@ set.seed(93)
 t_grilla <- rep(datos_planetax$t, each = 1000)
 beta0_priori <- rep(rnorm(1000, 10, 0.5), times = 12)
 beta1_priori <-  rep(rnorm(1000, 8, 1), times = 12)
-beta2_priori <- rep(rnorm(1000, -4, 1.5), times = 12) 
+beta2_priori <- rep(rnorm(1000, -4, 1.5), times = 12)
 sigma_priori <- rep(abs(rnorm(1000, 0, 1.5)), times = 12)
-mu_priori <- beta0_priori+beta1_priori*t_grilla+beta2_priori*t_grilla^2
+mu_priori <- beta0_priori + beta1_priori * t_grilla + beta2_priori * t_grilla^2
 y_pred_priori <- rnorm(12000, mu_priori, sigma_priori)
 priori <- data.frame(
   t_grilla,
@@ -407,10 +432,11 @@ summary_priori <- priori %>%
 
 # Gráfico
 ggplot(summary_priori, aes(x = t_grilla)) +
-  geom_ribbon(aes(ymin = q05, ymax = q95), fill = "lightblue", alpha = 0.4) +
+  geom_ribbon(aes(ymin = q05, ymax = q95),
+              fill = "lightblue",
+              alpha = 0.4) +
   geom_line(aes(y = mean), color = "blue", linewidth = 1) +
-  labs(title = "Distribución predictiva a priori de y",
-       x = "t", y = "y_pred") +
+  labs(title = "Distribución predictiva a priori de y", x = "t", y = "y_pred") +
   theme_minimal()
 
 
@@ -422,41 +448,47 @@ t_seleccionados <- t_values[seq(1, length(t_values), length.out = 6)]
 muestra <- priori %>% filter(t_grilla %in% t_seleccionados)
 
 ggplot(muestra, aes(x = y_pred_priori)) +
-  geom_histogram(bins = 30, fill = "gray80", color = "black") +
-  facet_wrap(~ round(t_grilla, 2), scales = "free", ncol = 3) +
+  geom_histogram(bins = 30,
+                 fill = "gray80",
+                 color = "black") +
+  facet_wrap( ~ round(t_grilla, 2), scales = "free", ncol = 3) +
   labs(title = "Distribución de y_pred en distintos valores de t", x = "y_pred") +
   theme_minimal()
 
 ```
 
 ```{r}
-muestras_params_2 <- as.data.frame(extract(modelo_2_fit)) %>% 
-  select(c(beta0,beta1,beta2,sigma))
+muestras_params_2 <- as.data.frame(extract(modelo_2_fit)) %>%
+  select(c(beta0, beta1, beta2, sigma))
 ```
 
 ```{r}
-muestras_params_2l <- muestras_params_2 %>% mutate(beta2 = -2*beta2) %>% 
-  pivot_longer(c("beta0", "beta1", "beta2", "sigma"), names_to = "parametro") %>% 
-  mutate(parametro = case_when(parametro == "beta0" ~ "x0",
-                               parametro == "beta1" ~ "v0",
-                               parametro ==  "beta2" ~ "a",
-                               T ~ parametro))
+muestras_params_2l <- muestras_params_2 %>% mutate(beta2 = -2 * beta2) %>%
+  pivot_longer(c("beta0", "beta1", "beta2", "sigma"), names_to = "parametro") %>%
+  mutate(
+    parametro = case_when(
+      parametro == "beta0" ~ "x0",
+      parametro == "beta1" ~ "v0",
+      parametro ==  "beta2" ~ "a",
+      T ~ parametro
+    )
+  )
 
 ggplot(muestras_params_2l) +
   geom_histogram(
-    aes(x = value, y = after_stat(density)), 
-    bins = 30, 
-    fill = "#12BC81", 
+    aes(x = value, y = after_stat(density)),
+    bins = 30,
+    fill = "#12BC81",
     color = "#12BC81"
-) +
-  facet_wrap(~ parametro, scales = "free") +
+  ) +
+  facet_wrap( ~ parametro, scales = "free") +
   labs(x = "Valor", y = "Densidad") +
   theme_bw()
 ```
 
 ```{r}
 set.seed(5)
-beta0_mod2 <- muestras_params_2 %>% slice_sample(n = 40) %>% pull(beta0) 
+beta0_mod2 <- muestras_params_2 %>% slice_sample(n = 40) %>% pull(beta0)
 set.seed(5)
 beta1_mod2 <- muestras_params_2 %>% slice_sample(n = 40) %>% pull(beta1)
 set.seed(5)
@@ -464,10 +496,7 @@ beta2_mod2 <- muestras_params_2 %>% slice_sample(n = 40) %>% pull(beta2)
 
 
 # Crear dataframe con todas combinaciones: tiempo y curva
-curva2 <- expand.grid(
-  t_f = datos_planetax$t,
-  i = 1:40
-) %>%
+curva2 <- expand.grid(t_f = datos_planetax$t, i = 1:40) %>%
   mutate(
     beta0 = beta0_mod2[i],
     beta1 = beta1_mod2[i],
@@ -486,9 +515,25 @@ curva_media2 <- data.frame(
 )
 
 ggplot() +
-  geom_point(data = datos_planetax, aes(x = t, y = x_t), color = "black", alpha = 0.7, size = 2) +
-  geom_line(data = curva2, aes(x = t_f, y = x_f, group = i), alpha = 0.7, color = "lightblue") +
-  geom_line(data = curva_media2, aes(x = t_f, y = x_f), color = "blue", linewidth = 1) +
+  geom_point(
+    data = datos_planetax,
+    aes(x = t, y = x_t),
+    color = "black",
+    alpha = 0.7,
+    size = 2
+  ) +
+  geom_line(
+    data = curva2,
+    aes(x = t_f, y = x_f, group = i),
+    alpha = 0.7,
+    color = "lightblue"
+  ) +
+  geom_line(
+    data = curva_media2,
+    aes(x = t_f, y = x_f),
+    color = "blue",
+    linewidth = 1
+  ) +
   theme_bw() +
   labs(x = "Tiempo (en segundos)", y = "Altura (en metros)")
 
@@ -499,11 +544,12 @@ x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
 mu_matrix2 <- matrix(nrow = 4000, ncol = 100)
 
 for (i in seq_along(x_grid)) {
-    mu_matrix2[, i] <- muestras_params_2$beta0 + muestras_params_2$beta1 * x_grid[i] + muestras_params_2$beta2 * x_grid[i]^2
+  mu_matrix2[, i] <- muestras_params_2$beta0 + muestras_params_2$beta1 * x_grid[i] + muestras_params_2$beta2 * x_grid[i]^2
 }
 
 mu_mean2 <- apply(mu_matrix2, 2, mean)
-mu_qts2 <- t(apply(mu_matrix2, 2, function(x) quantile(x, c(0.025, 0.975))))
+mu_qts2 <- t(apply(mu_matrix2, 2, function(x)
+  quantile(x, c(0.025, 0.975))))
 
 # Finalmente, se lamacenan los valores calculados en un data frame
 data_mu2 <- data.frame(
@@ -521,22 +567,18 @@ ggplot(datos_planetax) +
     data = data_mu2
   ) +
   geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
-  geom_line(
-    aes(x, y),
-    color = "blue",
-    data = data_mu2
-  ) +
+  geom_line(aes(x, y), color = "blue", data = data_mu2) +
   theme_bw()
 ```
 
 ```{r}
 y_pred_2 <- extract(modelo_2_fit, "y_rep2")$y_rep2
 yp_mean2 <- apply(y_pred_2, 2, mean)
-yp_qts2 <- t(apply(y_pred_2, 2, function(x) quantile(x, c(0.025, 0.975))))
-y_pred_2 <- matrix(y_pred_2,ncol = 1)
+yp_qts2 <- t(apply(y_pred_2, 2, function(x)
+  quantile(x, c(0.025, 0.975))))
+y_pred_2 <- matrix(y_pred_2, ncol = 1)
 
-predicciones2 <- data.frame(t=rep(datos_planetax$t, each = 4000),
-                           y_pred_2)
+predicciones2 <- data.frame(t = rep(datos_planetax$t, each = 4000), y_pred_2)
 
 # Finalmente, se lamacenan los valores calculados en un data frame
 data_y_pred2 <- data.frame(
@@ -560,11 +602,7 @@ ggplot(datos_planetax) +
     alpha = 0.6,
     data = data_mu2
   ) +
-    geom_line(
-    aes(x, y),
-    color = "blue",
-    data = data_mu2
-  ) +
+  geom_line(aes(x, y), color = "blue", data = data_mu2) +
   theme_bw()
 ```
 
@@ -572,32 +610,28 @@ ggplot(datos_planetax) +
 a_mod1 <- muestras_params_1l %>% filter(parametro == 'a') %>% pull(value)
 a_mod2 <- muestras_params_2l %>% filter(parametro == 'a') %>% pull(value)
 
-gravedad <- data.frame(
-  modelo = rep(c("Modelo 1","Modelo 2"), each = 4000),
-  a = c(a_mod1,a_mod2)
-)
+gravedad <- data.frame(modelo = rep(c("Modelo 1", "Modelo 2"), each = 4000),
+                       a = c(a_mod1, a_mod2))
 ggplot(gravedad) +
   geom_histogram(
-    aes(x = a, y = after_stat(density)), 
-    bins = 30, 
-    fill = "#12BC81", 
+    aes(x = a, y = after_stat(density)),
+    bins = 30,
+    fill = "#12BC81",
     color = "#12BC81"
-) +
-  facet_wrap(~ modelo) +
+  ) +
+  facet_wrap( ~ modelo) +
   labs(x = "Valor", y = "Densidad") +
   theme_bw()
 
 ggplot(gravedad) +
-  geom_boxplot(
-    aes(y = a, x = modelo), 
-    fill = "#12BC81") +
+  geom_boxplot(aes(y = a, x = modelo), fill = "#12BC81") +
   labs(y = "Gravedad", x = "Modelo") +
   theme_bw()
 ```
 
 ```{r}
-quantile(a_mod1, c(0.025,0.25,0.75,0.975))
-quantile(a_mod2, c(0.025,0.25,0.75,0.975))
+quantile(a_mod1, c(0.025, 0.25, 0.75, 0.975))
+quantile(a_mod2, c(0.025, 0.25, 0.75, 0.975))
 ```
 
 ```{r}
@@ -605,11 +639,12 @@ x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
 mu_matrix_10.1 <- matrix(nrow = 4000, ncol = 100)
 
 for (i in seq_along(x_grid)) {
-    mu_matrix_10.1[, i] <- muestras_params_1$beta0 + 6 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
+  mu_matrix_10.1[, i] <- muestras_params_1$beta0 + 6 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
 }
 
 mu_mean_10.1 <- apply(mu_matrix_10.1, 2, mean)
-mu_qts_10.1 <- t(apply(mu_matrix_10.1, 2, function(x) quantile(x, c(0.025, 0.975))))
+mu_qts_10.1 <- t(apply(mu_matrix_10.1, 2, function(x)
+  quantile(x, c(0.025, 0.975))))
 
 # Finalmente, se lamacenan los valores calculados en un data frame
 data_mu_10.1 <- data.frame(
@@ -627,22 +662,19 @@ p1 <- ggplot(datos_planetax) +
     data = data_mu_10.1
   ) +
   # geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
-  geom_line(
-    aes(x, y),
-    color = "blue",
-    data = data_mu_10.1
-  ) +
+  geom_line(aes(x, y), color = "blue", data = data_mu_10.1) +
   theme_bw()
 
 
 mu_matrix_10.2 <- matrix(nrow = 4000, ncol = 100)
 
 for (i in seq_along(x_grid)) {
-    mu_matrix_10.2[, i] <- muestras_params_2$beta0 + 6 * x_grid[i] + muestras_params_2$beta2 * x_grid[i]^2
+  mu_matrix_10.2[, i] <- muestras_params_2$beta0 + 6 * x_grid[i] + muestras_params_2$beta2 * x_grid[i]^2
 }
 
 mu_mean_10.2 <- apply(mu_matrix_10.2, 2, mean)
-mu_qts_10.2 <- t(apply(mu_matrix_10.2, 2, function(x) quantile(x, c(0.025, 0.975))))
+mu_qts_10.2 <- t(apply(mu_matrix_10.2, 2, function(x)
+  quantile(x, c(0.025, 0.975))))
 
 # Finalmente, se lamacenan los valores calculados en un data frame
 data_mu_10.2 <- data.frame(
@@ -660,11 +692,7 @@ p2 <- ggplot(datos_planetax) +
     data = data_mu_10.2
   ) +
   # geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
-  geom_line(
-    aes(x, y),
-    color = "blue",
-    data = data_mu_10.2
-  ) +
+  geom_line(aes(x, y), color = "blue", data = data_mu_10.2) +
   theme_bw()
 p1 + p2
 ```
@@ -674,11 +702,12 @@ x_grid <- seq(0, 6, length.out = 100)
 mu_matrix_10.3 <- matrix(nrow = 4000, ncol = 100)
 
 for (i in seq_along(x_grid)) {
-    mu_matrix_10.3[, i] <- muestras_params_1$beta0 + 12 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
+  mu_matrix_10.3[, i] <- muestras_params_1$beta0 + 12 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
 }
 
 mu_mean_10.3 <- apply(mu_matrix_10.3, 2, mean)
-mu_qts_10.3 <- t(apply(mu_matrix_10.3, 2, function(x) quantile(x, c(0.025, 0.975))))
+mu_qts_10.3 <- t(apply(mu_matrix_10.3, 2, function(x)
+  quantile(x, c(0.025, 0.975))))
 
 # Finalmente, se lamacenan los valores calculados en un data frame
 data_mu_10.3 <- data.frame(
@@ -696,22 +725,19 @@ p3 <- ggplot(datos_planetax) +
     data = data_mu_10.3
   ) +
   # geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
-  geom_line(
-    aes(x, y),
-    color = "blue",
-    data = data_mu_10.3
-  ) +
+  geom_line(aes(x, y), color = "blue", data = data_mu_10.3) +
   theme_bw()
 
 
 mu_matrix_10.4 <- matrix(nrow = 4000, ncol = 100)
 
 for (i in seq_along(x_grid)) {
-    mu_matrix_10.4[, i] <- muestras_params_2$beta0 + 12 * x_grid[i] + muestras_params_2$beta2 * x_grid[i]^2
+  mu_matrix_10.4[, i] <- muestras_params_2$beta0 + 12 * x_grid[i] + muestras_params_2$beta2 * x_grid[i]^2
 }
 
 mu_mean_10.4 <- apply(mu_matrix_10.4, 2, mean)
-mu_qts_10.4 <- t(apply(mu_matrix_10.4, 2, function(x) quantile(x, c(0.025, 0.975))))
+mu_qts_10.4 <- t(apply(mu_matrix_10.4, 2, function(x)
+  quantile(x, c(0.025, 0.975))))
 
 # Finalmente, se lamacenan los valores calculados en un data frame
 data_mu_10.4 <- data.frame(
@@ -729,11 +755,7 @@ p4 <- ggplot(datos_planetax) +
     data = data_mu_10.4
   ) +
   # geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
-  geom_line(
-    aes(x, y),
-    color = "blue",
-    data = data_mu_10.4
-  ) +
+  geom_line(aes(x, y), color = "blue", data = data_mu_10.4) +
   theme_bw()
 p3 + p4
 ```
