@@ -27,24 +27,39 @@ ggplot(data = datos_planetax) +
   theme_bw()
 ```
 
-# 2
+# Relación entre el modelo cinemático y el modelo lineal normal
 
-La relación es: 
+En este trabajo se utilizará como base una ecuación fundamental de la 
+cinemática que describe el movimiento de un objeto bajo aceleración constante.
+Esta, vincula la posición del objeto en función del tiempo con 
+parámetros clave del movimiento: la aceleración, la velocidad inicial y la 
+posición de partida.
+
+Se trabajará con un modelo lineal normal, donde los coeficientes del mismo
+se pueden expresar en función de los parámetros de la ecuación cinemática:
+
 $$\begin{cases}
-x_0 = \beta_0 \\
-v_0 = \beta_1 \\
-\frac12a=\beta_2\\
+\beta_0 = x_0 \\
+\beta_1 = v_0 \\
+\beta_2= \frac12a \\
 \end{cases}$$
 
+Además, se puede establecer un vínculo entre las variables de ambos modelos que 
+se puede plantear de la siguiente manera:
+
 $$\begin{cases}
-t = X_1 \\
-t^2 = X_2 \\
-\mu_{t_i} = \mu_i \\
+X_1 = t \\
+X_2 = t^2 \\
 \end{cases}$$
 
-# 3
+A partir de esta relación, se propondrá el modelo estadístico que servirá 
+como base para el análisis bayesiano posterior, sin incorporar aún información 
+a priori sobre los parámetros.
 
-El modelo lineal a utilizar es: 
+## Planteo del modelo lineal
+
+A continuación, se presenta el modelo lineal que será utilizado para analizar
+los datos obtenidos en el experimento realizado en el Planeta X:
 
 $$
 \begin{aligned}
