@@ -1,19 +1,46 @@
 ---
-title: "Trabajo Práctico 3"
-format: html
-editor: 
-  markdown: 
-    wrap: 72
+title: " "
+format:
+  pdf:
+    pdf-engine: lualatex
+    geometry: a4paper
+    fontsize: 12pt
+    lang: es
+    fig-width: 5
+    fig-height: 3
+    fig-align: center
+    colorlinks: true
+    code-block-font-size: \scriptsize
+    include-in-header:
+      text: |
+        \usepackage{float}
+        \usepackage{caption}
+        \usepackage{ragged2e}
+        \justifying
+execute:
+  echo: false
+  warning: false
+  message: false
+  include: true
 ---
 
-Objetivo: medir directamente la gravedad en un planeta recién descubierto, el Planeta X.
+```{=latex}
+\renewcommand{\figurename}{Figura}
+\renewcommand{\tablename}{Tabla}
+```
 
 ```{r}
-#| message: false
 library(tidyverse)
 library(rstan)
 library(patchwork)
 ```
+# Introducción
+
+En un contexto donde la exploración espacial se vuelve cada vez más relevante, contar con herramientas para comprender y estimar características fundamentales de otros planetas se vuelve clave. En esta oportunidad hemos sido convocados por la Agencia de Investigación Espacial para participar en un experimento crucial: medir la aceleración gravitatoria en un planeta recién descubierto, el Planeta X. La estrategia elegida para tal fin, aunque sencilla en apariencia, exige precisión: lanzar una pelota de tenis verticalmente hacia arriba y registrar detalladamente su trayectoria. Con la ayuda de una nave espacial de última generación y dispositivos tecnológicos capaces de captar con exactitud el movimiento del objeto
+
+Antes de llegar al destino final, el entrenamiento incluyó ensayos previos en la Tierra y una parada intermedia en Marte. Estos pasos no solo sirvieron para familiarizarnos con los instrumentos y condiciones del experimento, sino también para recolectar información valiosa que luego podrá ser utilizada para enriquecer el análisis estadístico.
+
+A lo largo del informe se presentan visualizaciones exploratorias, especificaciones de modelos, implementaciones en `Stan` y análisis de los resultados obtenidos. El objetivo central es obtener una estimación confiable de la gravedad en el Planeta X, así como evaluar el comportamiento predictivo del modelo en distintos escenarios de lanzamiento, contribuyendo así a resolver un interrogante que mantiene en vilo tanto a la comunidad científica como a la población general.
 
 ```{r}
 datos_marte <- read_csv("tp3_marte.csv")
@@ -21,11 +48,25 @@ datos_tierra <- read_csv("tp3_tierra.csv")
 datos_planetax <- read_csv("tp3_planetax.csv")
 ```
 
+# Experimento en el planeta X
+
+Con el objetivo de comenzar a explorar los datos recolectados durante el experimento realizado en el Planeta X, a continuación se presenta la trayectoria registrada de la pelota de tenis en función del tiempo. Esta visualización permite una primera evaluación visual del comportamiento del sistema y del funcionamiento del dispositivo de registro utilizado durante la misión.
+
+\newpage
+
 ```{r}
+#| label: fig-1
+#| fig-cap: "Trayectoria de la pelota en el planeta X" 
 ggplot(data = datos_planetax) + 
   geom_point(aes(x=t, y=x_t)) +
+  labs(
+    x = expression(t),
+    y = expression(Y[t])
+       ) +
   theme_bw()
 ```
+
+La @fig-1 muestra una secuencia de mediciones que sigue, en términos generales, la forma esperada para un lanzamiento vertical bajo aceleración constante. La pelota fue lanzada desde una altura de 10 metros y aunque la trayectoria no se ajusta perfectamente a una curva suave, las pequeñas desviaciones observadas pueden atribuirse a errores de medición, propios del instrumento o del entorno experimental. Los datos parecen haber sido recolectados de manera adecuada, por lo que se consideran válidos para avanzar hacia una modelización estadística más precisa.
 
 # Relación entre el modelo cinemático y el modelo lineal normal
 
@@ -56,7 +97,7 @@ A partir de esta relación, se propondrá el modelo estadístico que servirá
 como base para el análisis bayesiano posterior, sin incorporar aún información 
 a priori sobre los parámetros.
 
-## Planteo del modelo lineal
+# Planteo del modelo lineal
 
 A continuación, se presenta el modelo lineal que será utilizado para analizar
 los datos obtenidos en el experimento realizado en el Planeta X:
@@ -68,7 +109,7 @@ Y_{t_i} \mid \mu_{t_i}, \sigma &\sim \text{Normal}(\mu_{t_i}; \sigma^2) & i = 1,
 \end{aligned}
 $$ 
 
-# Modelo 1: Regresión Cuadrática Bayesiana con distribuciones **a priori** uniformes
+## Modelo 1: Regresión cuadrática con distribuciones **a priori** uniformes
 
 Este modelo tiene como objetivo describir la relación entre tiempo
 transcurrido desde el inicio de la observación (en segundos) denotada
@@ -78,7 +119,7 @@ errores normales. La estimación se realiza bajo el enfoque bayesiano
 utilizando el lenguaje probabilístico `Stan`, a través del muestreo
 por cadenas de Markov (MCMC).
 
-## Especificación del modelo
+### Especificación del modelo
 
 El modelo asume que la relación entre $y$ y $t$ puede ser representada
 mediante una función cuadrática, es decir:
@@ -101,7 +142,7 @@ donde:
 -   $t_i$: tiempo transcurrido desde el inicio de la observación (en
     segundos).
 
-## Código en Stan
+### Código en Stan
 
 ```{r}
 modelo1 <- "
@@ -147,8 +188,6 @@ modelo_1_fit <- sampling(
   seed = 82,          
   refresh = 0,          
 )
-
-modelo_1_fit
 ```
 
 ```{r}
@@ -286,7 +325,6 @@ ggplot(datos_planetax) +
   geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
   geom_line(aes(x, y), color = "blue", data = data_mu) +
   theme_bw()
-
 ```
 
 ```{r}
@@ -321,7 +359,6 @@ ggplot(datos_planetax) +
   ) +
   geom_line(aes(x, y), color = "blue", data = data_mu) +
   theme_bw()
-
 ```
 
 # ITEM 6
@@ -409,9 +446,6 @@ modelo_2_fit <- sampling(
   seed = 82,          
   refresh = 0,          
 )
-
-modelo_2_fit
-
 ```
 
 ```{r}
@@ -469,7 +503,6 @@ ggplot(muestra, aes(x = y_pred_priori)) +
   facet_wrap( ~ round(t_grilla, 2), scales = "free", ncol = 3) +
   labs(title = "Distribución de y_pred en distintos valores de t", x = "y_pred") +
   theme_minimal()
-
 ```
 
 ```{r}
@@ -551,7 +584,6 @@ ggplot() +
   ) +
   theme_bw() +
   labs(x = "Tiempo (en segundos)", y = "Altura (en metros)")
-
 ```
 
 ```{r}
@@ -688,8 +720,7 @@ for (i in seq_along(x_grid)) {
 }
 
 mu_mean_10.2 <- apply(mu_matrix_10.2, 2, mean)
-mu_qts_10.2 <- t(apply(mu_matrix_10.2, 2, function(x)
-  quantile(x, c(0.025, 0.975))))
+mu_qts_10.2 <- t(apply(mu_matrix_10.2, 2, function(x) quantile(x, c(0.025, 0.975))))
 
 # Finalmente, se lamacenan los valores calculados en un data frame
 data_mu_10.2 <- data.frame(
