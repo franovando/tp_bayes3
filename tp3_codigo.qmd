@@ -681,10 +681,11 @@ quantile(a_mod1, c(0.025, 0.25, 0.75, 0.975))
 quantile(a_mod2, c(0.025, 0.25, 0.75, 0.975))
 ```
 
+
+
 ```{r}
 x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
 mu_matrix_10.1 <- matrix(nrow = 4000, ncol = 100)
-
 for (i in seq_along(x_grid)) {
   mu_matrix_10.1[, i] <- muestras_params_1$beta0 + 6 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
 }
@@ -741,6 +742,92 @@ p2 <- ggplot(datos_planetax) +
   geom_line(aes(x, y), color = "blue", data = data_mu_10.2) +
   theme_bw()
 p1 + p2
+```
+
+Queremos ver cuáanto tarda en caer la pelota en promedio
+
+$$
+\mu=0 \to \beta_0+\beta_1t+\beta_2t^2=0 \to t_{1,2}=\frac{-\beta_1\pm\sqrt{\beta_1^2-4\beta_0\beta_2}}{2\beta_2}
+$$
+```{r}
+# Despeje de t de la ecuación
+t_caida_6ms.1 <- muestras_params_1 %>% 
+  mutate(
+  t = (-6-sqrt(6^2-4*beta0*beta2))/(2*beta2)
+  ) %>% 
+  select(-c(sigma, beta1))
+t_caida_6ms.2 <- muestras_params_2 %>% 
+  mutate(
+  t = (-6-sqrt(6^2-4*beta0*beta2))/(2*beta2)
+  ) %>% 
+  select(-c(sigma, beta1))
+summary(t_caida_12ms.1$t)
+g6ms.1 <- t_caida_6ms.1 %>% ggplot() +
+geom_histogram(
+    aes(x = t, y = after_stat(density)),
+    bins = 30,
+    fill = "#12BC81",
+    color = "#12BC81"
+  ) +
+  lims(
+    x = c(2,5),
+    y = c(0,3.5)
+    ) +
+  theme_bw()
+
+g6ms.2 <- t_caida_6ms.2 %>% ggplot() +
+geom_histogram(
+    aes(x = t, y = after_stat(density)),
+    bins = 30,
+    fill = "#12BC81",
+    color = "#12BC81"
+  ) +
+  lims(
+    x = c(2,5),
+    y = c(0,3.5)   
+       ) +
+  theme_bw()
+
+t_caida_12ms.1 <- muestras_params_1 %>% 
+  mutate(
+  t = (-12-sqrt(12^2-4*beta0*beta2))/(2*beta2)
+  ) %>% 
+  select(-c(sigma, beta1))
+t_caida_12ms.2 <- muestras_params_2 %>% 
+  mutate(
+  t = (-12-sqrt(12^2-4*beta0*beta2))/(2*beta2)
+  ) %>% 
+  select(-c(sigma, beta1))
+
+g12ms.1 <- t_caida_12ms.1 %>% ggplot() +
+geom_histogram(
+    aes(x = t, y = after_stat(density)),
+    bins = 30,
+    fill = "#12BC81",
+    color = "#12BC81"
+  ) +
+  lims(
+    x = c(3,7),
+    y = c(0,2)   
+       ) +
+  theme_bw()
+
+g12ms.2 <-t_caida_12ms.2 %>% ggplot() +
+geom_histogram(
+    aes(x = t, y = after_stat(density)),
+    bins = 30,
+    fill = "#12BC81",
+    color = "#12BC81"
+  ) +
+  lims(
+    x = c(3,7),
+    y = c(0,2)   
+       ) +
+  theme_bw()
+
+g6ms.1 + g6ms.2
+
+g12ms.1 + g12ms.2
 ```
 
 ```{r}
