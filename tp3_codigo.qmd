@@ -24,6 +24,58 @@ execute:
   include: true
 ---
 
+\pagenumbering{gobble}
+
+\begin{titlepage}
+\centering
+\vspace{2cm}
+
+\includegraphics[width=0.8\textwidth]{logounr.png}
+
+\vspace{2cm}
+
+\text{UNIVERSIDAD NACIONAL DE ROSARIO}
+
+\vspace{1cm}
+
+\text{FACULTAD DE CIENCIAS ECONÓMICAS Y ESTADÍSTICA}
+
+\vspace{3cm}
+
+\Large
+\textbf{TRABAJO PRÁCTICO: "El bayesiano interestelar"}
+
+\vspace{1cm}
+
+\fontsize{14pt}{14pt}\selectfont
+
+\text{ESTADÍSTICA BAYESIANA}
+
+\vspace{2cm}
+
+\normalsize
+
+\textbf{Autores: }\text{Priscila Fenoy - María Victoria Fernandez - Francisco Ovando}
+
+\vspace{1cm}
+
+\textbf{Docentes: }\text{Tomás Capretto - Ignacio Evangelista}
+
+\vspace{1cm}
+
+\textbf{Fecha: }\text{9 de Junio de 2025}
+
+\end{titlepage}
+
+\newpage 
+
+\renewcommand{\contentsname}{Índice}
+\tableofcontents
+
+\newpage
+
+\pagenumbering{arabic} 
+
 ```{=latex}
 \renewcommand{\figurename}{Figura}
 \renewcommand{\tablename}{Tabla}
@@ -56,7 +108,7 @@ Con el objetivo de comenzar a explorar los datos recolectados durante el experim
 
 ```{r}
 #| label: fig-1
-#| fig-cap: "Trayectoria de la pelota en el planeta X" 
+#| fig-cap: "Posición de la pelota en el planeta X durante el experimento" 
 ggplot(data = datos_planetax) + 
   geom_point(aes(x=t, y=x_t)) +
   labs(
@@ -142,9 +194,9 @@ donde:
 -   $t_i$: tiempo transcurrido desde el inicio de la observación (en
     segundos).
 
-### Código en Stan
+### Estructura del modelo expresada en Stan
 
-```{r}
+```{r estructura del modelo 1, echo = TRUE}
 modelo1 <- "
 data {
   int<lower=0> N;  // Cantidad de observaciones
@@ -172,6 +224,10 @@ generated quantities {
     y_rep[i] = normal_rng(mu[i], sigma);
   }
 }"
+```
+
+
+```{r ajuste del modelo 1}
 
 stan_data_1 <- list(
   N = nrow(datos_planetax),
@@ -207,15 +263,22 @@ Luego de ajustar el modelo bayesiano a los datos obtenidos en el experimento del
 
 
 ```{r}
-muestras_params_1l <- muestras_params_1 %>% mutate(beta2 = -2 * beta2) %>%
+#| label: fig-2
+#| fig-cap: "Distribución marginal de los parámetros estimados obtenidos a partir de\n las muestras generadas" 
+#| fig-pos: "H" 
+
+muestras_params_1l <- muestras_params_1 %>% 
+  mutate(beta2 = -2 * beta2) %>%
   pivot_longer(c("beta0", "beta1", "beta2", "sigma"), names_to = "parametro") %>%
   mutate(
     parametro = case_when(
-      parametro == "beta0" ~ "x0",
-      parametro == "beta1" ~ "v0",
-      parametro ==  "beta2" ~ "a",
-      T ~ parametro
-    )
+      parametro == "beta0" ~ "x[0]",
+      parametro == "beta1" ~ "v[0]",
+      parametro == "beta2" ~ "a",
+      parametro == "sigma" ~ "sigma",
+      TRUE ~ parametro
+    ),
+    parametro = factor(parametro, levels = c("x[0]", "v[0]", "a", "sigma"))
   )
 
 ggplot(muestras_params_1l) +
@@ -225,24 +288,28 @@ ggplot(muestras_params_1l) +
     fill = "#12BC81",
     color = "#12BC81"
   ) +
-  facet_wrap( ~ parametro, scales = "free") +
-  labs(x = "Valor", y = "Densidad") +
+  facet_wrap(~ parametro, scales = "free", labeller = label_parsed) +
+  labs(x = "Valores de los parámetros", y = "Densidad") +
   theme_bw()
 ```
 
-Las siguientes gráficas muestran las distribuciones a posteriori de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas, lo que indica buena estabilidad del muestreo y una adecuada capacidad del modelo para aprender sobre los parámetros. En particular, se observa que:
+En la @fig-2 se muestran las distribuciones a posteriori de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas, lo que indica buena estabilidad del muestreo y una adecuada capacidad del modelo para aprender sobre los parámetros. En particular, se observa que:
 
-- El posterior de $a$ presenta una forma aproximadamente simétrica, concentrada en torno a un valor cercano a 6 $m/s^2$. Esto sugiere que la intensidad de la gravedad en el Planeta X es inferior a la terrestre (≈ 9.8 $m/s^2$), pero mayor a la de Marte (≈ 3.7 m/s²), lo cual resulta coherente con la posible masa y tamaño del planeta.
+- El posterior de $a$ presenta una forma aproximadamente simétrica, concentrada en torno a un valor cercano a 6 $m/s^2$. Esto sugiere que la intensidad de la gravedad en el Planeta X es inferior a la terrestre (≈ 9.8 $m/s^2$), pero mayor a la de Marte (≈ 3.7 m/s²).
 
-- El posterior de la velocidad inicial estimada $v_0$ se concentra alrededor de 8 $m/s$, en línea con lo esperado según el entrenamiento previo del astronauta. La forma de la distribución es simétrica y estrecha, indicando baja incertidumbre y consistencia en el procedimiento de lanzamiento.
+- El posterior de la velocidad inicial estimada $v_0$ se concentra alrededor de 8 $m/s$, en línea con lo esperado según el entrenamiento previo del astronauta. La forma de la distribución es simétrica y angosta, indicando baja incertidumbre.
 
 - El posterior del valor de $x_0$ se sitúa en torno a los 10 metros, que coincide con la altura de la nave espacial The Bayesian desde donde se realizó el lanzamiento. Esta estimación es coherente con las condiciones iniciales conocidas del experimento.
 
-- A diferencia de las anteriores, el posterior de $\sigma$ es asimétrico y presenta una cola larga hacia la derecha. Esto indica que, aunque la mayor parte de la variabilidad del modelo es baja, existe cierta probabilidad de errores más grandes. Aun así, la mayor concentración cerca de valores bajos sugiere que el modelo logra ajustar bastante bien los datos observados.
+- A diferencia de las anteriores, el posterior de $\sigma$ es asimétrico y presenta una cola pesada hacia la derecha. Se observa quela mayor concentración cerca de valores bajos sugiere que el modelo logra ajustar bastante bien los datos observados.
 
-# ITEM 5
+# Análisis gráfico del modelo bayesiano
+En este ítem se muestra la curva de regresión estimada para la distribución
+condicional de $\mu_i$ acompañada de sus bandas de credibilidad del 95%,
+que representan la incertidumbre asociada a la 
+predicción del modelo ajustado.
 
-```{r}
+```{r include = F}
 set.seed(5)
 beta0 <- muestras_params_1 %>% slice_sample(n = 40) %>% pull(beta0)
 set.seed(5)
@@ -291,11 +358,15 @@ ggplot() +
     linewidth = 1
   ) +
   theme_bw() +
-  labs(x = "Tiempo (en segundos)", y = "Altura (en metros)")
+  labs(x = "Tiempo (segundos)", y = "Altura (metros)")
 
 ```
 
 ```{r}
+#| label: fig-3
+#| fig-cap: "Curva de regresión estimada para mu[i] en el modelo 1" 
+#| fig-pos: "H" 
+
 x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
 mu_matrix <- matrix(nrow = 4000, ncol = 100)
 
@@ -324,10 +395,31 @@ ggplot(datos_planetax) +
   ) +
   geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
   geom_line(aes(x, y), color = "blue", data = data_mu) +
-  theme_bw()
+  theme_bw() +
+  labs(
+    x = "Tiempo (segundos)",              
+    y = "Altura (metros)"              
+  )
+
 ```
+La curva visualizada en la Figura representa la posición esperada de la pelota 
+a lo largo del tiempo, según el modelo ajustado con los datos del Planeta X.
+
+La curva sigue una trayectoria parabólica, lo cual es coherente con el 
+movimiento de un objeto lanzado hacia arriba bajo la influencia de la 
+gravedad. Se observa que la mayoría de los puntos quedan contenidos dentro 
+de las bandas de credibilidad, lo que indica un buen ajuste del modelo a los 
+datos, aunque con un prior mas informativo esta estimación podría mejorar.
+
+Además, se incluye un gráfico de la distribución predictiva a 
+posteriori para distintos valores de tiempo, lo que permite evaluar el 
+comportamiento esperado de la pelota en futuros lanzamientos.
 
 ```{r}
+#| label: fig-4
+#| fig-cap: "Distribución predictiva a posteriori en el modelo 2" 
+#| fig-pos: "H" 
+
 y_pred_1 <- extract(modelo_1_fit, "y_rep")$y_rep
 yp_mean <- apply(y_pred_1, 2, mean)
 yp_qts <- t(apply(y_pred_1, 2, function(x) quantile(x, c(0.025, 0.975))))
@@ -335,7 +427,6 @@ y_pred_1 <- matrix(y_pred_1, ncol = 1)
 
 predicciones <- data.frame(t = rep(datos_planetax$t, each = 4000), y_pred_1)
 
-# Finalmente, se lamacenan los valores calculados en un data frame
 data_y_pred <- data.frame(
   x = datos_planetax$t,
   y = yp_mean,
@@ -358,36 +449,48 @@ ggplot(datos_planetax) +
     data = data_mu
   ) +
   geom_line(aes(x, y), color = "blue", data = data_mu) +
-  theme_bw()
+  theme_bw() +
+  labs(
+    x = "Tiempo (segundos)",              
+    y = "Altura (metros)"              
+  )
 ```
+En la @fig-4 se observa que las bandas de credibilidad asociadas a la distribución predictiva
+a posteriori son bastantes angostas. Esto refleja que el modelo tiene una buena capacidad para predecir futuras observaciones. 
 
-# ITEM 6
+# Construcción de distribuciones a priori informativas a partir de datos de la Tierra y Marte
+Se dispone de datos provenientes de experimentos realizados en la Tierra y Marte, cuyos valores de gravedad son conocidos. En este punto, se visualizan dichos datos junto con los del Planeta X, con el objetivo de analizar similitudes y diferencias en los comportamientos registrados. Esta comparación permite identificar patrones útiles para definir distribuciones a priori más informativas para los parámetros del modelo, mejorando así la calidad de las inferencias bayesianas sobre la gravedad en el Planeta X.
 
 ```{r}
-ggplot() +
-  geom_point(
-    data = datos_planetax,
-    aes(x = t, y = x_t),
-    color = "green",
-    alpha = 0.7,
-    size = 2
-  ) +
-  geom_point(
-    data = datos_marte,
-    aes(x = t, y = x_t),
-    color = "red",
-    alpha = 0.7,
-    size = 2
-  ) +
-  geom_point(
-    data = datos_tierra,
-    aes(x = t, y = x_t),
-    color = "blue",
-    alpha = 0.7,
-    size = 2
-  ) +
-  theme_bw()
+#| label: fig-5
+#| fig-cap: "Posición vertical de la pelota en función del tiempo" 
+#| fig-pos: "H" 
+
+datos_planetas <- bind_rows(
+  datos_planetax %>% mutate(planeta = "Planeta X"),
+  datos_marte %>% mutate(planeta = "Marte"),
+  datos_tierra %>% mutate(planeta = "Tierra")
+)
+
+ggplot(datos_planetas, aes(x = t, y = x_t, color = planeta)) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c(
+    "Planeta X" = "#2E8B57",
+    "Marte" = "#B22222",
+    "Tierra" = "#4682B4"
+  )) +
+  theme_bw() +
+  labs(
+    x = "Tiempo (segundos)",
+    y = "Altura (metros)",
+    color = "Planeta"
+  )
 ```
+
+La @fig-5 muestra la posición vertical de la pelota en función del tiempo para los tres planetas. En la Tierra, la pelota alcanza una menor altura y regresa rápidamente al suelo, lo que refleja una mayor aceleración gravitatoria. En el Planeta X, se observa una altura intermedia y un tiempo de vuelo moderado, mientras que en Marte la pelota alcanza la mayor altura y permanece más tiempo en el aire, lo que sugiere una gravedad más débil.
+
+En conjunto, los datos sugieren que la gravedad en el Planeta X es más cercana a la de la Tierra que a la de Marte. Esta comparación proporciona una base útil para definir distribuciones a priori informativas sobre la gravedad en el planeta de interés, aprovechando el conocimiento disponible sobre los entornos conocidos.
+
 
 # ITEM 7
 
@@ -398,7 +501,7 @@ grav marte 3.73 grav tierra 9.807 media 6.7685
 
 -0.5\*(6.7685)
 
-```{r}
+```{r estructura del modelo 2, echo=T}
 modelo2 <- "
 data {
   int<lower=0> N;  // Cantidad de observaciones
@@ -430,7 +533,10 @@ generated quantities {
     y_rep2[i] = normal_rng(mu2[i], sigma);
   }
 }"
+```
 
+
+```{r ajuste del modelo 2}
 stan_data_2 <- list(
   N = nrow(datos_planetax),
   t = datos_planetax$t,    
@@ -470,6 +576,10 @@ priori <- data.frame(
 ```
 
 ```{r}
+#| label: fig-6
+#| fig-cap: "Distribución predictiva a priori de la posición vertical de la pelota" 
+#| fig-pos: "H" 
+
 # Resumen por tiempo
 summary_priori <- priori %>%
   group_by(t_grilla) %>%
@@ -485,9 +595,15 @@ ggplot(summary_priori, aes(x = t_grilla)) +
               fill = "lightblue",
               alpha = 0.4) +
   geom_line(aes(y = mean), color = "blue", linewidth = 1) +
-  labs(title = "Distribución predictiva a priori de y", x = "t", y = "y_pred") +
+  labs( x = "Tiempo(segundos)", y = "Altura(segundos)") +
   theme_minimal()
+```
 
+
+```{r}
+#| label: fig-7
+#| fig-cap: "Distribución predictiva a priori en distintos valores del tiempo" 
+#| fig-pos: "H" 
 
 # Seleccionamos algunos puntos de t
 t_values <- unique(priori$t_grilla)
@@ -501,7 +617,7 @@ ggplot(muestra, aes(x = y_pred_priori)) +
                  fill = "gray80",
                  color = "black") +
   facet_wrap( ~ round(t_grilla, 2), scales = "free", ncol = 3) +
-  labs(title = "Distribución de y_pred en distintos valores de t", x = "y_pred") +
+  labs(x = expression(y[pred])) +
   theme_minimal()
 ```
 
@@ -511,14 +627,19 @@ muestras_params_2 <- as.data.frame(extract(modelo_2_fit)) %>%
 ```
 
 ```{r}
-muestras_params_2l <- muestras_params_2 %>% mutate(beta2 = -2 * beta2) %>%
+#| label: fig-8
+#| fig-cap: "Distribución marginal de los parámetros estimados obtenidos a partir de\n las muestras generadas para el segundo modelo" 
+#| fig-pos: "H" 
+
+muestras_params_2l <- muestras_params_2 %>%
+  mutate(beta2 = -2 * beta2) %>%
   pivot_longer(c("beta0", "beta1", "beta2", "sigma"), names_to = "parametro") %>%
   mutate(
     parametro = case_when(
-      parametro == "beta0" ~ "x0",
-      parametro == "beta1" ~ "v0",
-      parametro ==  "beta2" ~ "a",
-      T ~ parametro
+      parametro == "beta0" ~ "x[0]",
+      parametro == "beta1" ~ "v[0]",
+      parametro == "beta2" ~ "a",
+      TRUE ~ parametro
     )
   )
 
@@ -529,12 +650,12 @@ ggplot(muestras_params_2l) +
     fill = "#12BC81",
     color = "#12BC81"
   ) +
-  facet_wrap( ~ parametro, scales = "free") +
-  labs(x = "Valor", y = "Densidad") +
+  facet_wrap(~ parametro, scales = "free", labeller = label_parsed) +  
+  labs(x = "Valores de los parámetros", y = "Densidad") +
   theme_bw()
 ```
 
-```{r}
+```{r, include=F}
 set.seed(5)
 beta0_mod2 <- muestras_params_2 %>% slice_sample(n = 40) %>% pull(beta0)
 set.seed(5)
@@ -587,6 +708,10 @@ ggplot() +
 ```
 
 ```{r}
+#| label: fig-9
+#| fig-cap: "Curva de regresión estimada para mu[i] en el modelo 2" 
+#| fig-pos: "H"
+
 x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
 mu_matrix2 <- matrix(nrow = 4000, ncol = 100)
 
@@ -615,10 +740,14 @@ ggplot(datos_planetax) +
   ) +
   geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
   geom_line(aes(x, y), color = "blue", data = data_mu2) +
+  labs( x = "Tiempo(segundos)", y = "Altura(segundos)") +
   theme_bw()
 ```
 
 ```{r}
+#| label: fig-10
+#| fig-cap: "Distribución predictiva a posteriori en el modelo 2" 
+#| fig-pos: "H"
 y_pred_2 <- extract(modelo_2_fit, "y_rep2")$y_rep2
 yp_mean2 <- apply(y_pred_2, 2, mean)
 yp_qts2 <- t(apply(y_pred_2, 2, function(x)
@@ -650,10 +779,14 @@ ggplot(datos_planetax) +
     data = data_mu2
   ) +
   geom_line(aes(x, y), color = "blue", data = data_mu2) +
+  labs( x = "Tiempo(segundos)", y = "Altura(segundos)")+
   theme_bw()
 ```
 
 ```{r}
+#| label: fig-11
+#| fig-cap: "Distribución de la gravedad en ambos modelos" 
+#| fig-pos: "H"
 a_mod1 <- muestras_params_1l %>% filter(parametro == 'a') %>% pull(value)
 a_mod2 <- muestras_params_2l %>% filter(parametro == 'a') %>% pull(value)
 
@@ -667,7 +800,7 @@ ggplot(gravedad) +
     color = "#12BC81"
   ) +
   facet_wrap( ~ modelo) +
-  labs(x = "Valor", y = "Densidad") +
+  labs(x = "Gravedad", y = "Densidad") +
   theme_bw()
 
 ggplot(gravedad) +
@@ -683,7 +816,7 @@ quantile(a_mod2, c(0.025, 0.25, 0.75, 0.975))
 
 
 
-```{r}
+```{r, include=F}
 x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
 mu_matrix_10.1 <- matrix(nrow = 4000, ncol = 100)
 for (i in seq_along(x_grid)) {
@@ -744,7 +877,70 @@ p2 <- ggplot(datos_planetax) +
 p1 + p2
 ```
 
-Queremos ver cuáanto tarda en caer la pelota en promedio
+```{r, include=F}
+x_grid <- seq(0, 6, length.out = 100)
+mu_matrix_10.3 <- matrix(nrow = 4000, ncol = 100)
+
+for (i in seq_along(x_grid)) {
+  mu_matrix_10.3[, i] <- muestras_params_1$beta0 + 12 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
+}
+
+mu_mean_10.3 <- apply(mu_matrix_10.3, 2, mean)
+mu_qts_10.3 <- t(apply(mu_matrix_10.3, 2, function(x)
+  quantile(x, c(0.025, 0.975))))
+
+# Finalmente, se lamacenan los valores calculados en un data frame
+data_mu_10.3 <- data.frame(
+  x = x_grid,
+  y = mu_mean_10.3,
+  lower_95 = mu_qts_10.3[, 1],
+  upper_95 = mu_qts_10.3[, 2]
+)
+
+p3 <- ggplot(datos_planetax) +
+  geom_ribbon(
+    aes(x, ymin = lower_95, ymax = upper_95),
+    fill = "grey50",
+    alpha = 0.6,
+    data = data_mu_10.3
+  ) +
+  # geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
+  geom_line(aes(x, y), color = "blue", data = data_mu_10.3) +
+  theme_bw()
+
+
+mu_matrix_10.4 <- matrix(nrow = 4000, ncol = 100)
+
+for (i in seq_along(x_grid)) {
+  mu_matrix_10.4[, i] <- muestras_params_2$beta0 + 12 * x_grid[i] + muestras_params_2$beta2 * x_grid[i]^2
+}
+
+mu_mean_10.4 <- apply(mu_matrix_10.4, 2, mean)
+mu_qts_10.4 <- t(apply(mu_matrix_10.4, 2, function(x)
+  quantile(x, c(0.025, 0.975))))
+
+# Finalmente, se lamacenan los valores calculados en un data frame
+data_mu_10.4 <- data.frame(
+  x = x_grid,
+  y = mu_mean_10.4,
+  lower_95 = mu_qts_10.4[, 1],
+  upper_95 = mu_qts_10.4[, 2]
+)
+
+p4 <- ggplot(datos_planetax) +
+  geom_ribbon(
+    aes(x, ymin = lower_95, ymax = upper_95),
+    fill = "grey50",
+    alpha = 0.6,
+    data = data_mu_10.4
+  ) +
+  # geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
+  geom_line(aes(x, y), color = "blue", data = data_mu_10.4) +
+  theme_bw()
+p3 + p4
+```
+
+Queremos ver cuánto tarda en caer la pelota en promedio
 
 $$
 \mu=0 \to \beta_0+\beta_1t+\beta_2t^2=0 \to t_{1,2}=\frac{-\beta_1\pm\sqrt{\beta_1^2-4\beta_0\beta_2}}{2\beta_2}
@@ -761,7 +957,7 @@ t_caida_6ms.2 <- muestras_params_2 %>%
   t = (-6-sqrt(6^2-4*beta0*beta2))/(2*beta2)
   ) %>% 
   select(-c(sigma, beta1))
-summary(t_caida_12ms.1$t)
+
 g6ms.1 <- t_caida_6ms.1 %>% ggplot() +
 geom_histogram(
     aes(x = t, y = after_stat(density)),
@@ -830,65 +1026,4 @@ g6ms.1 + g6ms.2
 g12ms.1 + g12ms.2
 ```
 
-```{r}
-x_grid <- seq(0, 6, length.out = 100)
-mu_matrix_10.3 <- matrix(nrow = 4000, ncol = 100)
 
-for (i in seq_along(x_grid)) {
-  mu_matrix_10.3[, i] <- muestras_params_1$beta0 + 12 * x_grid[i] + muestras_params_1$beta2 * x_grid[i]^2
-}
-
-mu_mean_10.3 <- apply(mu_matrix_10.3, 2, mean)
-mu_qts_10.3 <- t(apply(mu_matrix_10.3, 2, function(x)
-  quantile(x, c(0.025, 0.975))))
-
-# Finalmente, se lamacenan los valores calculados en un data frame
-data_mu_10.3 <- data.frame(
-  x = x_grid,
-  y = mu_mean_10.3,
-  lower_95 = mu_qts_10.3[, 1],
-  upper_95 = mu_qts_10.3[, 2]
-)
-
-p3 <- ggplot(datos_planetax) +
-  geom_ribbon(
-    aes(x, ymin = lower_95, ymax = upper_95),
-    fill = "grey50",
-    alpha = 0.6,
-    data = data_mu_10.3
-  ) +
-  # geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
-  geom_line(aes(x, y), color = "blue", data = data_mu_10.3) +
-  theme_bw()
-
-
-mu_matrix_10.4 <- matrix(nrow = 4000, ncol = 100)
-
-for (i in seq_along(x_grid)) {
-  mu_matrix_10.4[, i] <- muestras_params_2$beta0 + 12 * x_grid[i] + muestras_params_2$beta2 * x_grid[i]^2
-}
-
-mu_mean_10.4 <- apply(mu_matrix_10.4, 2, mean)
-mu_qts_10.4 <- t(apply(mu_matrix_10.4, 2, function(x)
-  quantile(x, c(0.025, 0.975))))
-
-# Finalmente, se lamacenan los valores calculados en un data frame
-data_mu_10.4 <- data.frame(
-  x = x_grid,
-  y = mu_mean_10.4,
-  lower_95 = mu_qts_10.4[, 1],
-  upper_95 = mu_qts_10.4[, 2]
-)
-
-p4 <- ggplot(datos_planetax) +
-  geom_ribbon(
-    aes(x, ymin = lower_95, ymax = upper_95),
-    fill = "grey50",
-    alpha = 0.6,
-    data = data_mu_10.4
-  ) +
-  # geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
-  geom_line(aes(x, y), color = "blue", data = data_mu_10.4) +
-  theme_bw()
-p3 + p4
-```
