@@ -251,15 +251,9 @@ muestras_params_1 <- as.data.frame(extract(modelo_1_fit)) %>%
   select(c(beta0,beta1,beta2,sigma))
 ```
 
-En este modelo se utilizaron distribuciones *a priori* no informativas, permitiendo que
-los datos tengan un rol principal en la actualización de la distribución a
-posteriori. Por lo que, las distribuciones *a priori* utilizadas son:
+En este modelo se utilizaron distribuciones *a priori* no informativas, permitiendo que los datos tengan un rol principal en la actualización de la distribución a posteriori. Por lo que, las distribuciones *a priori* utilizadas son para $\beta_0$, $\beta_1$ y $\beta_2$ distribuciones *a priori* uniformes y para $\sigma$ un *prior* uniforme, donde el plano se encuentra sobre los reales positivos.
 
--   Para $\beta_0$, $\beta_1$ y $\beta_2$: distribuciones *a priori* uniformes, el plano se encuentra sobre los reales.
-
--   Y para $\sigma$: un *prior* uniforme, el plano se encuentra sobre los reales positivos.
-
-Luego de ajustar el modelo bayesiano a los datos obtenidos en el experimento del Planeta X, se generaron muestras de la distribución predictiva a posteriori de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datoS, es decir se analizaron las distribuciones marginales a posteriori de los parámetros del modelo:
+Luego de ajustar el modelo bayesiano a los datos obtenidos del Planeta X, se generaron muestras de la distribución predictiva a posteriori de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datos, es decir se analizaron las distribuciones marginales a posteriori de los parámetros del modelo:
 
 
 ```{r}
@@ -293,15 +287,15 @@ ggplot(muestras_params_1l) +
   theme_bw()
 ```
 
-En la @fig-2 se muestran las distribuciones a posteriori de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas, lo que indica buena estabilidad del muestreo y una adecuada capacidad del modelo para aprender sobre los parámetros. En particular, se observa que:
+En la @fig-2 se muestran las distribuciones a posteriori de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas. 
 
-- El posterior de $a$ presenta una forma aproximadamente simétrica, concentrada en torno a un valor cercano a 6 $m/s^2$. Esto sugiere que la intensidad de la gravedad en el Planeta X es inferior a la terrestre (≈ 9.8 $m/s^2$), pero mayor a la de Marte (≈ 3.7 m/s²).
+Se observa que el posterior de $a$ (la aceleración constante que experimenta la pelota) presenta una forma aproximadamente simétrica, concentrada en torno a un valor cercano a $6m/s^2$. Esto sugiere que la intensidad de la gravedad en el Planeta X es inferior a la terrestre ($\approx 9.8 m/s^2$), pero mayor a la de Marte ($\approx 3.7 m/s^2$).
 
-- El posterior de la velocidad inicial estimada $v_0$ se concentra alrededor de 8 $m/s$, en línea con lo esperado según el entrenamiento previo del astronauta. La forma de la distribución es simétrica y angosta, indicando baja incertidumbre.
+Además, el posterior de la velocidad inicial estimada $v_0$ se concentra alrededor de $8 m/s$, en línea con lo esperado según el entrenamiento previo del astronauta. La forma de la distribución es simétrica y estrecha, indicando baja incertidumbre.
 
-- El posterior del valor de $x_0$ se sitúa en torno a los 10 metros, que coincide con la altura de la nave espacial The Bayesian desde donde se realizó el lanzamiento. Esta estimación es coherente con las condiciones iniciales conocidas del experimento.
+Por otro lado, el posterior del valor de $x_0$ se sitúa en torno a los 10 metros, que coincide con la altura de la nave espacial "The Bayesian" desde donde se realizó el lanzamiento. Esto es coherente con las condiciones iniciales conocidas.
 
-- A diferencia de las anteriores, el posterior de $\sigma$ es asimétrico y presenta una cola pesada hacia la derecha. Se observa quela mayor concentración cerca de valores bajos sugiere que el modelo logra ajustar bastante bien los datos observados.
+El posterior de $\sigma$ es asimétrico y presenta una cola pesada hacia la derecha. Se observa que la mayor concentración cerca de valores bajos sugiere que el modelo logra ajustar bastante bien los datos observados.
 
 # Análisis gráfico del modelo bayesiano
 En este ítem se muestra la curva de regresión estimada para la distribución
