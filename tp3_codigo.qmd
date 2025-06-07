@@ -595,7 +595,7 @@ ggplot(summary_priori, aes(x = t_grilla)) +
               fill = "lightblue",
               alpha = 0.4) +
   geom_line(aes(y = mean), color = "blue", linewidth = 1) +
-  labs( x = "Tiempo(segundos)", y = "Altura(segundos)") +
+  labs( x = "Tiempo(segundos)", y = "Altura(metros)") +
   theme_minimal()
 ```
 
@@ -655,6 +655,9 @@ ggplot(muestras_params_2l) +
   theme_bw()
 ```
 
+# Análisis gráfico del modelo 2 
+A continuación, se presenta la curva de regresión estimada para la distribución condicional de $\mu_i$, acompañada por los datos observados en el Planeta X y las bandas de credibilidad del 95%. Esta visualización permite evaluar la incertidumbre asociada a las predicciones realizadas por el modelo 2, el cual fue ajustado con un prior más informativo.
+
 ```{r, include=F}
 set.seed(5)
 beta0_mod2 <- muestras_params_2 %>% slice_sample(n = 40) %>% pull(beta0)
@@ -704,7 +707,7 @@ ggplot() +
     linewidth = 1
   ) +
   theme_bw() +
-  labs(x = "Tiempo (en segundos)", y = "Altura (en metros)")
+  labs(x = "Tiempo (segundos)", y = "Altura (metros)")
 ```
 
 ```{r}
@@ -740,9 +743,14 @@ ggplot(datos_planetax) +
   ) +
   geom_point(aes(x = t, y = x_t), alpha = 0.6, size = 2) +
   geom_line(aes(x, y), color = "blue", data = data_mu2) +
-  labs( x = "Tiempo(segundos)", y = "Altura(segundos)") +
+  labs( x = "Tiempo(segundos)", y = "Altura(metros)") +
   theme_bw()
 ```
+
+La curva mostrada en la @fig-9 representa la posición esperada de la pelota a lo largo del tiempo, según el modelo ajustado. Se observa que está es decreciente, lo cual es consistente con el comportamiento físico de un objeto lanzado hacia arriba y afectado por la gravedad. Además, puede notarse que la mayoría de los puntos observados se encuentran contenidos dentro de las bandas de credibilidad del 95%, lo cual indica un buen ajuste del modelo a los datos empíricos.
+
+
+Con el objetivo de evaluar el comportamiento esperado de la posición de la pelota a lo largo del tiempo en lanzamientos futuros, a continuación se presenta el gráfico correspondiente a la distribución predictiva a posteriori para distintos valores del tiempo.
 
 ```{r}
 #| label: fig-10
@@ -779,9 +787,20 @@ ggplot(datos_planetax) +
     data = data_mu2
   ) +
   geom_line(aes(x, y), color = "blue", data = data_mu2) +
-  labs( x = "Tiempo(segundos)", y = "Altura(segundos)")+
+  labs( x = "Tiempo(segundos)", y = "Altura(metros)")+
   theme_bw()
 ```
+
+La @fig-10 muestra la distribución predictiva a posteriori de la posición de la pelota en el tiempo, según el modelo 2 ajustado. En este se visualiza la media de las predicciones (en azul), acompañada por las bandas de credibilidad del 95% para la distribución condicional de $\mu$ (en gris oscuro), y para las observaciones futuras (en gris claro).
+
+Se observa que la mayoría de los puntos del Planeta X se encuentran dentro del intervalo de predicción del 95%, lo que indica que el modelo captura adecuadamente su variabilidad.
+
+Además, la comparación entre la banda de credibilidad para $\mu$ y la banda de predicción deja en evidencia cómo la incertidumbre aumenta al considerar la variabilidad inherente a nuevas observaciones. En conjunto, este análisis respalda la solidez del modelo 2 tanto en términos de ajuste como de capacidad predictiva.
+
+# Comparación gráfica de ambos modelos ajustados 
+Con el objetivo de analizar cómo varía la estimación del parámetro de gravedad bajo distintos supuestos previos, se comparan las distribuciones a posteriori obtenidas para dicho parámetro en dos modelos bayesianos diferentes. El Modelo 1 utiliza un prior uniforme, mientras que el Modelo 2 incorpora un prior más informativo. 
+
+El siguiente gráfico ilustra el posterior del parámetro asociado a la gravedad mediante boxplots, facilitando la comparación visual entre ambos modelos.
 
 ```{r}
 #| label: fig-11
@@ -792,16 +811,16 @@ a_mod2 <- muestras_params_2l %>% filter(parametro == 'a') %>% pull(value)
 
 gravedad <- data.frame(modelo = rep(c("Modelo 1", "Modelo 2"), each = 4000),
                        a = c(a_mod1, a_mod2))
-ggplot(gravedad) +
-  geom_histogram(
-    aes(x = a, y = after_stat(density)),
-    bins = 30,
-    fill = "#12BC81",
-    color = "#12BC81"
-  ) +
-  facet_wrap( ~ modelo) +
-  labs(x = "Gravedad", y = "Densidad") +
-  theme_bw()
+#ggplot(gravedad) +
+#  geom_histogram(
+#    aes(x = a, y = after_stat(density)),
+#    bins = 30,
+#    fill = "#12BC81",
+#    color = "#12BC81"
+#  ) +
+#  facet_wrap( ~ modelo) +
+#  labs(x = "Gravedad", y = "Densidad") +
+#  theme_bw()
 
 ggplot(gravedad) +
   geom_boxplot(aes(y = a, x = modelo), fill = "#12BC81") +
@@ -809,12 +828,18 @@ ggplot(gravedad) +
   theme_bw()
 ```
 
-```{r}
+```{r, include=F}
 quantile(a_mod1, c(0.025, 0.25, 0.75, 0.975))
 quantile(a_mod2, c(0.025, 0.25, 0.75, 0.975))
 ```
+A partir de este análisis visual, se observa que el Modelo 2 produce una distribución a posteriori más concentrada en torno al valor central, lo cual sugiere una mayor precisión en la estimación del parámetro de gravedad. En contraste, la distribución del Modelo 1 presenta una mayor dispersión, reflejando mayor incertidumbre. Esto sugiere que el prior utilizado en el modelo 2 no solo es más informativo, sino que también mejora la precisión de las estimaciones. Es decir, el uso de este prior conduce a una estimación más ajustada y confiable de la posición esperada de la pelota.
 
+# Estimación del tiempo de caída con distintas velocidades iniciales
+El objetivo de esta sección es estimar, utilizando ambos modelos ajustados, el tiempo promedio que tarda en caer la pelota de tenis cuando se lanza con dos velocidades iniciales diferentes: $6m/s$ y $12m/s$. Para ello, se plantea el problema en términos del valor esperado del modelo cuadrático:
 
+$$
+\mu=\beta_0+\beta_1t+\beta_2t^2
+$$
 
 ```{r, include=F}
 x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
@@ -940,12 +965,28 @@ p4 <- ggplot(datos_planetax) +
 p3 + p4
 ```
 
-Queremos ver cuánto tarda en caer la pelota en promedio
+Este valor representa la posición media de la pelota en función del tiempo. Dado que queremos estimar el instante en que la pelota toca el suelo (es decir, cuando $\mu=0$, se resuelve la siguiente ecuación cuadrática:
 
 $$
 \mu=0 \to \beta_0+\beta_1t+\beta_2t^2=0 \to t_{1,2}=\frac{-\beta_1\pm\sqrt{\beta_1^2-4\beta_0\beta_2}}{2\beta_2}
 $$
+
+Para incorporar las distintas velocidades iniciales en el modelo, se ajusta $\beta_1$ multiplicándola por la velocidad deseada ($6m/s$ o $12m/s$). Así, en lugar de un solo valor, se generan predicciones de $\mu$ utilizando las muestras a posteriori de los parámetros $(\beta_0, \beta_2)$ y reemplazando $\beta_1 = v_0$ en la expresión, siendo $v_0$ la velocidad inicial correspondiente.
+
+Se evaluó $\mu$ sobre una grilla de tiempos y se calcularon, para cada modelo y cada velocidad:
+
+- El valor promedio de $\mu$,
+- Los intervalos de credibilidad del 95% para $\mu$,
+- Y el tiempo estimado en que $\mu = 0$, es decir, el tiempo de caída.
+
+Este procedimiento fue implementado mediante simulaciones sobre muestras a posteriori (4000 en total), y se construyeron gráficamente las bandas de incertidumbre para cada caso. Así, se obtuvo el posterior del tiempo de caída para cada combinación de modelo y velocidad.
+
+Finalmente, se comparan los resultados para ambas velocidades iniciales y entre los dos modelos, con el objetivo de identificar cuál proporciona estimaciones más precisas y robustas. Esto se evalúa considerando la forma y amplitud de los intervalos de credibilidad, la estabilidad del tiempo estimado, y la coherencia con el comportamiento físico esperado del sistema.
+
 ```{r}
+#| label: fig-12
+#| fig-cap: "Distribución de la gravedad para ambas velocidades iniciales y entre \n los dos modelos" 
+#| fig-pos: "H"
 # Despeje de t de la ecuación
 t_caida_6ms.1 <- muestras_params_1 %>% 
   mutate(
@@ -959,16 +1000,18 @@ t_caida_6ms.2 <- muestras_params_2 %>%
   select(-c(sigma, beta1))
 
 g6ms.1 <- t_caida_6ms.1 %>% ggplot() +
-geom_histogram(
+  geom_histogram(
     aes(x = t, y = after_stat(density)),
     bins = 30,
     fill = "#12BC81",
     color = "#12BC81"
   ) +
   lims(
-    x = c(2,5),
-    y = c(0,3.5)
-    ) +
+    x = c(2, 5),
+    y = c(0, 3.5)
+  ) +
+  labs(title = "Modelo 1 - Velocidad inicial: 6 m/s",
+       x = "Tiempo (segundos)", y = "Densidad") +
   theme_bw()
 
 g6ms.2 <- t_caida_6ms.2 %>% ggplot() +
@@ -982,6 +1025,8 @@ geom_histogram(
     x = c(2,5),
     y = c(0,3.5)   
        ) +
+  labs(title = "Modelo 2 - Velocidad inicial: 6 m/s",
+       x = "Tiempo (segundos)", y = "Densidad") +
   theme_bw()
 
 t_caida_12ms.1 <- muestras_params_1 %>% 
@@ -1006,6 +1051,8 @@ geom_histogram(
     x = c(3,7),
     y = c(0,2)   
        ) +
+  labs(title = "Modelo 1 - Velocidad inicial: 12 m/s",
+       x = "Tiempo (segundos)", y = "Densidad") +
   theme_bw()
 
 g12ms.2 <-t_caida_12ms.2 %>% ggplot() +
@@ -1019,11 +1066,23 @@ geom_histogram(
     x = c(3,7),
     y = c(0,2)   
        ) +
+  labs(title = "Modelo 2 - Velocidad inicial: 12 m/s",
+       x = "Tiempo (segundos)", y = "Densidad") +
   theme_bw()
 
 g6ms.1 + g6ms.2
 
 g12ms.1 + g12ms.2
+
+((g6ms.1 + g6ms.2) / (g12ms.1 + g12ms.2))
 ```
 
+Al analizar las distribuciones a posteriori del tiempo de caída estimado para dos velocidades iniciales bajo dos modelos diferentes, se observan diferencias claras tanto en la ubicación como en la dispersión de las predicciones.
 
+Ambos modelos representan correctamente la relación física esperada: a mayor velocidad inicial, el objeto alcanza mayor altura y, en consecuencia, el tiempo de caída también se incrementa. Esto se refleja en que las distribuciones correspondientes a la mayor velocidad presentan un mayor tiempo de caída estimado.
+
+Sin embargo, al comparar los dos modelos, se observa que el Modelo 1 genera distribuciones más amplias, lo que indica una mayor incertidumbre en las estimaciones del tiempo de caída. Por otro lado, el Modelo 2 produce distribuciones más concentradas y con menor dispersión, lo que sugiere mayor consistencia en las predicciones. 
+
+En resumen, ambos modelos capturan adecuadamente la tendencia general esperada, pero difieren en la forma en que representan la incertidumbre asociada, debida a la creencia inicial utilizada. 
+
+# Conclusión final
