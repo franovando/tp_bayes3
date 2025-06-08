@@ -86,6 +86,7 @@ library(tidyverse)
 library(rstan)
 library(patchwork)
 ```
+
 # Introducción
 
 En un contexto donde la exploración espacial se vuelve cada vez más relevante, contar con herramientas para comprender y estimar características fundamentales de otros planetas se vuelve clave. En esta oportunidad hemos sido convocados por la Agencia de Investigación Espacial para participar en un experimento crucial: medir la aceleración gravitatoria en un planeta recién descubierto, el Planeta X. La estrategia elegida para tal fin, aunque sencilla en apariencia, exige precisión: lanzar una pelota de tenis verticalmente hacia arriba y registrar detalladamente su trayectoria. Con la ayuda de una nave espacial de última generación y dispositivos tecnológicos capaces de captar con exactitud el movimiento del objeto
@@ -149,10 +150,10 @@ A partir de esta relación, se propondrá el modelo estadístico que servirá
 como base para el análisis bayesiano posterior, sin incorporar aún información 
 a priori sobre los parámetros.
 
-# Planteo del modelo lineal
+# Modelo lineal normal
 
-A continuación, se presenta el modelo lineal que será utilizado para analizar
-los datos obtenidos en el experimento realizado en el Planeta X:
+El modelo asume que la relación entre $y$ y $t$ puede ser representada
+mediante una función cuadrática, es decir:
 
 $$
 \begin{aligned}
@@ -160,25 +161,6 @@ Y_{t_i} \mid \mu_{t_i}, \sigma &\sim \text{Normal}(\mu_{t_i}; \sigma^2) & i = 1,
 \mu_{t_i}  = &\beta_0 + \beta_1 t_i + \beta_2 t_i^2
 \end{aligned}
 $$ 
-
-## Modelo 1: Regresión cuadrática con distribuciones **a priori** uniformes
-
-Este modelo tiene como objetivo describir la relación entre tiempo
-transcurrido desde el inicio de la observación (en segundos) denotada
-como $t$ y posición vertical final de la pelota después de un tiempo $t$
-(en metros) denotada como $y$, a través de una regresión cuadrática con
-errores normales. La estimación se realiza bajo el enfoque bayesiano
-utilizando el lenguaje probabilístico `Stan`, a través del muestreo
-por cadenas de Markov (MCMC).
-
-### Especificación del modelo
-
-El modelo asume que la relación entre $y$ y $t$ puede ser representada
-mediante una función cuadrática, es decir:
-
-$$
-y_i \sim \mathcal{N}(\mu_i, \sigma), \quad \text{donde} \quad \mu_i = \beta_0 + \beta_1 t_i + \beta_2 t_i^2
-$$
 
 donde:
 
@@ -193,6 +175,17 @@ donde:
 -   $\sigma$: desviación estándar del error.
 -   $t_i$: tiempo transcurrido desde el inicio de la observación (en
     segundos).
+
+Este modelo tiene como objetivo describir la relación entre tiempo
+transcurrido desde el inicio de la observación (en segundos) denotada
+como $t$ y posición vertical final de la pelota después de un tiempo $t$
+(en metros) denotada como $y$, a través de una regresión cuadrática con
+errores normales. La estimación se realiza bajo el enfoque bayesiano
+utilizando el lenguaje probabilístico `Stan`, a través del muestreo
+por cadenas de Markov (MCMC).
+
+Como primer aproximación al problema, se plantea un modelo asumiendo distribuciones *a priori* uniformes para los parámetros.
+## Modelo con distribuciones *a priori* uniformes
 
 ### Estructura del modelo expresada en Stan
 
@@ -297,7 +290,8 @@ Por otro lado, el posterior del valor de $x_0$ se sitúa en torno a los 10 metro
 
 El posterior de $\sigma$ es asimétrico y presenta una cola pesada hacia la derecha. Se observa que la mayor concentración cerca de valores bajos sugiere que el modelo logra ajustar bastante bien los datos observados.
 
-# Análisis gráfico del modelo bayesiano
+### Análisis gráfico del modelo 
+
 En este ítem se muestra la curva de regresión estimada para la distribución
 condicional de $\mu_i$ acompañada de sus bandas de credibilidad del 95%,
 que representan la incertidumbre asociada a la 
@@ -452,7 +446,10 @@ ggplot(datos_planetax) +
 En la @fig-4 se observa que las bandas de credibilidad asociadas a la distribución predictiva
 a posteriori son bastantes angostas. Esto refleja que el modelo tiene una buena capacidad para predecir futuras observaciones. 
 
-# Construcción de distribuciones a priori informativas a partir de datos de la Tierra y Marte
+
+## Modelo con distribuciones *a priori* informativas
+
+### Elección de distribuciones *a priori* informativas 
 Se dispone de datos provenientes de experimentos realizados en la Tierra y Marte, cuyos valores de gravedad son conocidos. En este punto, se visualizan dichos datos junto con los del Planeta X, con el objetivo de analizar similitudes y diferencias en los comportamientos registrados. Esta comparación permite identificar patrones útiles para definir distribuciones a priori más informativas para los parámetros del modelo, mejorando así la calidad de las inferencias bayesianas sobre la gravedad en el Planeta X.
 
 ```{r}
@@ -485,15 +482,28 @@ La @fig-5 muestra la posición vertical de la pelota en función del tiempo para
 
 En conjunto, los datos sugieren que la gravedad en el Planeta X es más cercana a la de la Tierra que a la de Marte. Esta comparación proporciona una base útil para definir distribuciones a priori informativas sobre la gravedad en el planeta de interés, aprovechando el conocimiento disponible sobre los entornos conocidos.
 
+Dado que la pelota se lanza siempre desde la punta de la nave, a la altura inicial de la pelota, es decir $\beta_0$ se le asigna una creencia *a priori* normal centrada en 10, que es la altura de *The Bayesian* con desvío pequeño. 
 
-# ITEM 7
+El lanzamiento de la pelota fue realizado por una persona entrenada de manera exigente, que desarrolló la capacidad de lanzar la pelota siempre con la misma velocidad inicial (aproximadamente 8 metros por segundo), por lo que $\beta_1$ se asume normal centrado en 8 y se le asigna un desvío relativamente chico confiando en el entrenamiento realizado.
 
-$\beta_0\sim N(10,0.5)$ $\beta_1\sim N(8,1)$ $\beta_2\sim N(-4,1.5)$
-$\sigma\sim N^+(1.5)$
+El parámetro $\beta_2$ está relacionado a la gravedad del planeta X, gracias a las pruebas realizadas en Marte ($a=3.73$) y en la Tierra ($a=9.807$) se plantea la fuerza gravitatoria en el planeta X como una normal centrada en el promedio de ellas, por lo que $\mu_{\beta_2}=-\frac12(\frac{a_{tierra}+a_{marte}}{2})=-\frac12(6.7685)\approx 4$, con un desvío lo suficientemente grande para modelar la incertidumbre sobre este parámetro, pero asignandole probabilidades casi nulas a valores positivos del mismo.
 
-grav marte 3.73 grav tierra 9.807 media 6.7685
+Por último, para el error del modelo, se eligió una distribución normal positiva de desvío también grande, dado que no se conoce nada sobre este parámetro, sólo que es positivo.
 
--0.5\*(6.7685)
+De esta forma, el modelo lineal que será utilizado para analizar
+los datos obtenidos en el experimento realizado en el Planeta X:
+
+$$
+\begin{aligned}
+Y_{t_i} \mid \mu_{t_i}, \sigma &\sim \text{Normal}(\mu_{t_i}; \sigma^2) & i = 1, \cdots, 12 \\\\
+\mu_{t_i}  = &\beta_0 + \beta_1 t_i + \beta_2 t_i^2\\
+\beta_0 &\sim N(10,0.5)\\
+\beta_1 &\sim N(8,1)\\
+\beta_2 &\sim N(-4,1.5)\\
+\sigma &\sim N^+(1.5)
+\end{aligned}
+$$ 
+### Estructura del modelo expresada en Stan 
 
 ```{r estructura del modelo 2, echo=T}
 modelo2 <- "
@@ -529,7 +539,6 @@ generated quantities {
 }"
 ```
 
-
 ```{r ajuste del modelo 2}
 stan_data_2 <- list(
   N = nrow(datos_planetax),
@@ -547,6 +556,10 @@ modelo_2_fit <- sampling(
   refresh = 0,          
 )
 ```
+
+### Pruebas predictivas *a priori*
+
+En este apartado se llevan a cabo simulaciones bajo las distribuciones *a priori* definidas en el modelo lineal normal, sin recurrir a los datos observados. El objetivo consiste en evaluar la coherencia y plausibilidad de las elecciones previas mediante la generación de trayectorias simuladas de la posición de la pelota en función del tiempo.
 
 ```{r}
 set.seed(93)
@@ -592,7 +605,7 @@ ggplot(summary_priori, aes(x = t_grilla)) +
   labs( x = "Tiempo(segundos)", y = "Altura(metros)") +
   theme_minimal()
 ```
-
+En la @fig-6 se muestra una curva azul que corresponde al valor medio de la altura simulada en cada instante de tiempo, mientras que la banda sombreada indica los intervalos de incertidumbre del 95%. Se observa un comportamiento parabólico consistente con lo observado y con incertidumbre sobre la posición de la pelota a medida que aumenta el tiempo, que es razonable dado que las condiciones iniciales se modelaron con desvíos más chicos que el resto de parámetros.
 
 ```{r}
 #| label: fig-7
@@ -606,14 +619,17 @@ t_seleccionados <- t_values[seq(1, length(t_values), length.out = 6)]
 # Filtrar esos tiempos
 muestra <- priori %>% filter(t_grilla %in% t_seleccionados)
 
-ggplot(muestra, aes(x = y_pred_priori)) +
+ggplot(muestra, aes(x = y_pred_priori, y = after_stat(density))) +
   geom_histogram(bins = 30,
-                 fill = "gray80",
-                 color = "black") +
+                 fill = "#12BC81",
+                 color = "#12BC81") +
   facet_wrap( ~ round(t_grilla, 2), scales = "free", ncol = 3) +
-  labs(x = expression(y[pred])) +
-  theme_minimal()
+  labs(x = expression(tilde(y)),
+       y = "Densidad") +
+  theme_bw()
 ```
+
+Cada panel de la @fig-7 muestra el histograma de las posiciones simuladas (ỹ) en seis instantes concretos. Inicialmente, las densidades se concentran alrededor de un valor próximo a la altura de lanzamiento, con distribuciones relativamente estrechas. A medida que transcurre el tiempo, los histogramas se ensanchan y se desplazan: primero hacia valores máximos positivos (fase ascendente) y luego hacia valores negativos (fase de caída). Esta evolución ilustra cómo la variabilidad inducida por los priors se traduce en mayor dispersión en etapas avanzadas del vuelo, dado que si se observan los ejes verticales de cada gráfico se observa que la altura de las barras va disminuyendo considerablemente.
 
 ```{r}
 muestras_params_2 <- as.data.frame(extract(modelo_2_fit)) %>%
@@ -649,7 +665,18 @@ ggplot(muestras_params_2l) +
   theme_bw()
 ```
 
-# Análisis gráfico del modelo 2 
+En la @fig-8 se muestran las distribuciones a posteriori de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas. 
+
+La distribución parámetro $a$ se encuentra centrada en torno a 6 m/s². La dispersión es relativamente baja (entre 5 y 7), lo cual indica una creencia informativa pero no restrictiva.
+
+La distribución de $\sigma$ es asimétrica, concentrada principalmente entre 0.3 y 1 m, aunque con una cola hacia la derecha que admite errores de hasta aproximadamente 1.5 m. Esta forma refleja una creencia moderada en que los errores son pequeños, pero permite ocasionalmente errores mayores.
+
+El prior para la velocidad inicial se centra alrededor de 8m/s, con una distribución simétrica y estrecha (entre 6 y 10 m/s). Esto sugiere que se tiene una idea relativamente precisa del rango de velocidades plausibles en este tipo de lanzamiento.
+
+La distribución de $x_0$ se concentra alrededor de los 10 metros, con una dispersión baja (entre 9 y 11.5 m aproximadamente). Esta variable modela la altura desde la cual se lanza la pelota, y su distribución sugiere que el modelo contempla lanzamientos con muy poca incertidumbre.
+
+### Análisis gráfico del modelo 
+
 A continuación, se presenta la curva de regresión estimada para la distribución condicional de $\mu_i$, acompañada por los datos observados en el Planeta X y las bandas de credibilidad del 95%. Esta visualización permite evaluar la incertidumbre asociada a las predicciones realizadas por el modelo 2, el cual fue ajustado con un prior más informativo.
 
 ```{r, include=F}
@@ -791,7 +818,7 @@ Se observa que la mayoría de los puntos del Planeta X se encuentran dentro del 
 
 Además, la comparación entre la banda de credibilidad para $\mu$ y la banda de predicción deja en evidencia cómo la incertidumbre aumenta al considerar la variabilidad inherente a nuevas observaciones. En conjunto, este análisis respalda la solidez del modelo 2 tanto en términos de ajuste como de capacidad predictiva.
 
-# Comparación gráfica de ambos modelos ajustados 
+# Comparación de ambos modelos ajustados 
 Con el objetivo de analizar cómo varía la estimación del parámetro de gravedad bajo distintos supuestos previos, se comparan las distribuciones a posteriori obtenidas para dicho parámetro en dos modelos bayesianos diferentes. El Modelo 1 utiliza un prior uniforme, mientras que el Modelo 2 incorpora un prior más informativo. 
 
 El siguiente gráfico ilustra el posterior del parámetro asociado a la gravedad mediante boxplots, facilitando la comparación visual entre ambos modelos.
