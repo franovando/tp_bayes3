@@ -9,7 +9,7 @@ format:
     fig-width: 5
     fig-height: 3
     fig-align: center
-    colorlinks: true
+    colorlinks: false
     code-block-font-size: \scriptsize
     include-in-header:
       text: |
@@ -109,9 +109,9 @@ Con el objetivo de comenzar a explorar los datos recolectados durante el experim
 
 ```{r}
 #| label: fig-1
-#| fig-cap: "Posición de la pelota en el planeta X durante el experimento" 
+#| fig-cap: "Altura de la pelota en el planeta X durante el experimento" 
 ggplot(data = datos_planetax) + 
-  geom_point(aes(x=t, y=x_t)) +
+  geom_point(aes(x=t, y=x_t), color = "#12BC81") +
   labs(
     x = expression(t),
     y = expression(Y[t])
@@ -147,8 +147,7 @@ X_2 = t^2 \\
 \end{cases}$$
 
 A partir de esta relación, se propondrá el modelo estadístico que servirá 
-como base para el análisis bayesiano posterior, sin incorporar aún información 
-a priori sobre los parámetros.
+como base para el análisis.
 
 # Modelo lineal normal
 
@@ -184,8 +183,9 @@ errores normales. La estimación se realiza bajo el enfoque bayesiano
 utilizando el lenguaje probabilístico `Stan`, a través del muestreo
 por cadenas de Markov (MCMC).
 
-Como primer aproximación al problema, se plantea un modelo asumiendo distribuciones *a priori* uniformes para los parámetros.
 ## Modelo con distribuciones *a priori* uniformes
+
+Como primer aproximación al problema, se plantea un modelo asumiendo distribuciones *a priori* uniformes para los parámetros.
 
 ### Estructura del modelo expresada en Stan
 
@@ -213,7 +213,7 @@ generated quantities {
   mu = beta0 + beta1 * t + beta2 * t^2;
 
   for (i in 1:N) {
-    // Obtención de muestras de la distribución predictiva a posteriori
+    // Muestras de la distribución predictiva a posteriori
     y_rep[i] = normal_rng(mu[i], sigma);
   }
 }"
@@ -246,12 +246,12 @@ muestras_params_1 <- as.data.frame(extract(modelo_1_fit)) %>%
 
 En este modelo se utilizaron distribuciones *a priori* no informativas, permitiendo que los datos tengan un rol principal en la actualización de la distribución a posteriori. Por lo que, las distribuciones *a priori* utilizadas son para $\beta_0$, $\beta_1$ y $\beta_2$ distribuciones *a priori* uniformes y para $\sigma$ un *prior* uniforme, donde el plano se encuentra sobre los reales positivos.
 
-Luego de ajustar el modelo bayesiano a los datos obtenidos del Planeta X, se generaron muestras de la distribución predictiva a posteriori de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datos, es decir se analizaron las distribuciones marginales a posteriori de los parámetros del modelo:
+Luego de ajustar el modelo bayesiano a los datos obtenidos del Planeta X, se generaron muestras de la distribución predictiva *a posteriori* de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datos, es decir se analizaron las distribuciones marginales *a posteriori* de los parámetros del modelo:
 
 
 ```{r}
 #| label: fig-2
-#| fig-cap: "Distribución marginal de los parámetros estimados obtenidos a partir de\n las muestras generadas" 
+#| fig-cap: "Distribución marginal de las constantes físicas obtenidas a partir de\n las muestras generadas" 
 #| fig-pos: "H" 
 
 muestras_params_1l <- muestras_params_1 %>% 
@@ -280,11 +280,11 @@ ggplot(muestras_params_1l) +
   theme_bw()
 ```
 
-En la @fig-2 se muestran las distribuciones a posteriori de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas. 
+En la @fig-2 se muestran las distribuciones *a posteriori* de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas. 
 
-Se observa que el posterior de $a$ (la aceleración constante que experimenta la pelota) presenta una forma aproximadamente simétrica, concentrada en torno a un valor cercano a $6m/s^2$. Esto sugiere que la intensidad de la gravedad en el Planeta X es inferior a la terrestre ($\approx 9.8 m/s^2$), pero mayor a la de Marte ($\approx 3.7 m/s^2$).
+Se observa que el posterior de $a$ (la aceleración constante que experimenta la pelota) presenta una forma aproximadamente simétrica, concentrada en torno a un valor cercano a $6~m/s^2$. 
 
-Además, el posterior de la velocidad inicial estimada $v_0$ se concentra alrededor de $8 m/s$, en línea con lo esperado según el entrenamiento previo del astronauta. La forma de la distribución es simétrica y estrecha, indicando baja incertidumbre.
+Además, el posterior de la velocidad inicial estimada $v_0$ se concentra alrededor de $8~m/s$, en línea con lo esperado según el entrenamiento previo del astronauta. La forma de la distribución es simétrica y estrecha, indicando baja incertidumbre.
 
 Por otro lado, el posterior del valor de $x_0$ se sitúa en torno a los 10 metros, que coincide con la altura de la nave espacial "The Bayesian" desde donde se realizó el lanzamiento. Esto es coherente con las condiciones iniciales conocidas.
 
@@ -352,7 +352,7 @@ ggplot() +
 
 ```{r}
 #| label: fig-3
-#| fig-cap: "Curva de regresión estimada para mu[i] en el modelo 1" 
+#| fig-cap: "Altura media de la pelota a través del tiempo con bandas del 95% de credibilidad (usando *priors* uniformes)" 
 #| fig-pos: "H" 
 
 x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
@@ -399,13 +399,12 @@ gravedad. Se observa que la mayoría de los puntos quedan contenidos dentro
 de las bandas de credibilidad, lo que indica un buen ajuste del modelo a los 
 datos, aunque con un prior mas informativo esta estimación podría mejorar.
 
-Además, se incluye un gráfico de la distribución predictiva a 
-posteriori para distintos valores de tiempo, lo que permite evaluar el 
+Además, se incluyen bandas de predicción utilizando la distribución predictiva *a posteriori* para distintos valores de tiempo, lo que permite evaluar el 
 comportamiento esperado de la pelota en futuros lanzamientos.
 
 ```{r}
 #| label: fig-4
-#| fig-cap: "Distribución predictiva a posteriori en el modelo 2" 
+#| fig-cap: "Altura media de la pelota a través del tiempo con bandas del 95% de credibilidad y de predicción (usando *priors* uniformes)"
 #| fig-pos: "H" 
 
 y_pred_1 <- extract(modelo_1_fit, "y_rep")$y_rep
@@ -450,11 +449,12 @@ a posteriori son bastantes angostas. Esto refleja que el modelo tiene una buena 
 ## Modelo con distribuciones *a priori* informativas
 
 ### Elección de distribuciones *a priori* informativas 
-Se dispone de datos provenientes de experimentos realizados en la Tierra y Marte, cuyos valores de gravedad son conocidos. En este punto, se visualizan dichos datos junto con los del Planeta X, con el objetivo de analizar similitudes y diferencias en los comportamientos registrados. Esta comparación permite identificar patrones útiles para definir distribuciones a priori más informativas para los parámetros del modelo, mejorando así la calidad de las inferencias bayesianas sobre la gravedad en el Planeta X.
+
+Se dispone de datos provenientes de experimentos realizados en la Tierra y Marte, cuyos valores de gravedad son conocidos. En este punto, se visualizan dichos datos junto con los del Planeta X, con el objetivo de analizar similitudes y diferencias en los comportamientos registrados. Esta comparación permite identificar patrones útiles para definir distribuciones *a priori* más informativas para los parámetros del modelo, mejorando así la calidad de las inferencias bayesianas sobre la gravedad en el Planeta X.
 
 ```{r}
 #| label: fig-5
-#| fig-cap: "Posición vertical de la pelota en función del tiempo" 
+#| fig-cap: "Altura de la pelota en función del tiempo en distintos planetas" 
 #| fig-pos: "H" 
 
 datos_planetas <- bind_rows(
@@ -480,7 +480,7 @@ ggplot(datos_planetas, aes(x = t, y = x_t, color = planeta)) +
 
 La @fig-5 muestra la posición vertical de la pelota en función del tiempo para los tres planetas. En la Tierra, la pelota alcanza una menor altura y regresa rápidamente al suelo, lo que refleja una mayor aceleración gravitatoria. En el Planeta X, se observa una altura intermedia y un tiempo de vuelo moderado, mientras que en Marte la pelota alcanza la mayor altura y permanece más tiempo en el aire, lo que sugiere una gravedad más débil.
 
-En conjunto, los datos sugieren que la gravedad en el Planeta X es más cercana a la de la Tierra que a la de Marte. Esta comparación proporciona una base útil para definir distribuciones a priori informativas sobre la gravedad en el planeta de interés, aprovechando el conocimiento disponible sobre los entornos conocidos.
+En conjunto, los datos sugieren que la gravedad en el Planeta X es más cercana a la de la Tierra que a la de Marte. Esta comparación proporciona una base útil para definir distribuciones *a priori* informativas sobre la gravedad en el planeta de interés, aprovechando el conocimiento disponible sobre los entornos conocidos.
 
 Dado que la pelota se lanza siempre desde la punta de la nave, a la altura inicial de la pelota, es decir $\beta_0$ se le asigna una creencia *a priori* normal centrada en 10, que es la altura de *The Bayesian* con desvío pequeño. 
 
@@ -533,7 +533,7 @@ generated quantities {
   mu2 = beta0 + beta1 * t + beta2 * t^2;
 
   for (i in 1:N) {
-    // Obtención de muestras de la distribución predictiva a posteriori
+    // Muestras de la distribución predictiva a posteriori
     y_rep2[i] = normal_rng(mu2[i], sigma);
   }
 }"
@@ -584,7 +584,7 @@ priori <- data.frame(
 
 ```{r}
 #| label: fig-6
-#| fig-cap: "Distribución predictiva a priori de la posición vertical de la pelota" 
+#| fig-cap: "Altura media de la pelota *a priori* con bandas del 95% de credibilidad" 
 #| fig-pos: "H" 
 
 # Resumen por tiempo
@@ -609,7 +609,7 @@ En la @fig-6 se muestra una curva azul que corresponde al valor medio de la altu
 
 ```{r}
 #| label: fig-7
-#| fig-cap: "Distribución predictiva a priori en distintos valores del tiempo" 
+#| fig-cap: "Distribución predictiva *a priori* en distintos valores del tiempo" 
 #| fig-pos: "H" 
 
 # Seleccionamos algunos puntos de t
@@ -629,7 +629,7 @@ ggplot(muestra, aes(x = y_pred_priori, y = after_stat(density))) +
   theme_bw()
 ```
 
-Cada panel de la @fig-7 muestra el histograma de las posiciones simuladas (ỹ) en seis instantes concretos. Inicialmente, las densidades se concentran alrededor de un valor próximo a la altura de lanzamiento, con distribuciones relativamente estrechas. A medida que transcurre el tiempo, los histogramas se ensanchan y se desplazan: primero hacia valores máximos positivos (fase ascendente) y luego hacia valores negativos (fase de caída). Esta evolución ilustra cómo la variabilidad inducida por los priors se traduce en mayor dispersión en etapas avanzadas del vuelo, dado que si se observan los ejes verticales de cada gráfico se observa que la altura de las barras va disminuyendo considerablemente.
+Cada panel de la @fig-7 muestra el histograma de las posiciones simuladas (ỹ) en seis instantes concretos. Inicialmente, las densidades se concentran alrededor de un valor próximo a la altura de lanzamiento, con distribuciones relativamente estrechas. A medida que transcurre el tiempo, los histogramas se ensanchan y se desplazan: primero hacia valores máximos positivos (fase ascendente) y luego hacia valores negativos (fase de caída). Esta evolución ilustra cómo hay mayor dispersión en etapas avanzadas del vuelo, dado que si se observan los ejes verticales de cada gráfico se observa que la altura de las barras va disminuyendo considerablemente.
 
 ```{r}
 muestras_params_2 <- as.data.frame(extract(modelo_2_fit)) %>%
@@ -638,7 +638,7 @@ muestras_params_2 <- as.data.frame(extract(modelo_2_fit)) %>%
 
 ```{r}
 #| label: fig-8
-#| fig-cap: "Distribución marginal de los parámetros estimados obtenidos a partir de\n las muestras generadas para el segundo modelo" 
+#| fig-cap: "Distribución marginal de las constantes físicas obtenidas a partir de\n las muestras generadas (usando *priors* informativos)" 
 #| fig-pos: "H" 
 
 muestras_params_2l <- muestras_params_2 %>%
@@ -665,13 +665,13 @@ ggplot(muestras_params_2l) +
   theme_bw()
 ```
 
-En la @fig-8 se muestran las distribuciones a posteriori de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas. 
+En la @fig-8 se muestran las distribuciones *a posteriori* de los parámetros estimados por el modelo. En todos los casos, se observa que las cadenas convergen a distribuciones unimodales, con densidades concentradas. 
 
-La distribución parámetro $a$ se encuentra centrada en torno a 6 m/s². La dispersión es relativamente baja (entre 5 y 7), lo cual indica una creencia informativa pero no restrictiva.
+La distribución parámetro $a$ se encuentra centrada en torno a $6~m/s^2$. La dispersión es relativamente baja (entre 5 y 7), lo cual indica una creencia informativa pero no restrictiva.
 
-La distribución de $\sigma$ es asimétrica, concentrada principalmente entre 0.3 y 1 m, aunque con una cola hacia la derecha que admite errores de hasta aproximadamente 1.5 m. Esta forma refleja una creencia moderada en que los errores son pequeños, pero permite ocasionalmente errores mayores.
+La distribución de $\sigma$ es asimétrica, con una cola hacia la derecha que admite errores de hasta aproximadamente $1.5~m$. Esta forma refleja una creencia moderada en que los errores son pequeños, pero permite ocasionalmente errores mayores.
 
-El prior para la velocidad inicial se centra alrededor de 8m/s, con una distribución simétrica y estrecha (entre 6 y 10 m/s). Esto sugiere que se tiene una idea relativamente precisa del rango de velocidades plausibles en este tipo de lanzamiento.
+El prior para la velocidad inicial $v_0$ se centra alrededor de $8~m/s$, con una distribución simétrica y estrecha (entre 6 y 10 m/s). Esto sugiere que se tiene una idea relativamente precisa del rango de velocidades plausibles en este tipo de lanzamiento.
 
 La distribución de $x_0$ se concentra alrededor de los 10 metros, con una dispersión baja (entre 9 y 11.5 m aproximadamente). Esta variable modela la altura desde la cual se lanza la pelota, y su distribución sugiere que el modelo contempla lanzamientos con muy poca incertidumbre.
 
@@ -733,7 +733,7 @@ ggplot() +
 
 ```{r}
 #| label: fig-9
-#| fig-cap: "Curva de regresión estimada para mu[i] en el modelo 2" 
+#| fig-cap:  "Altura media de la pelota *a priori* con bandas del 95% de credibilidad (usando *priors* informativos)" 
 #| fig-pos: "H"
 
 x_grid <- seq(0, datos_planetax$t[12], length.out = 100)
@@ -770,12 +770,11 @@ ggplot(datos_planetax) +
 
 La curva mostrada en la @fig-9 representa la posición esperada de la pelota a lo largo del tiempo, según el modelo ajustado. Se observa que está es decreciente, lo cual es consistente con el comportamiento físico de un objeto lanzado hacia arriba y afectado por la gravedad. Además, puede notarse que la mayoría de los puntos observados se encuentran contenidos dentro de las bandas de credibilidad del 95%, lo cual indica un buen ajuste del modelo a los datos empíricos.
 
-
-Con el objetivo de evaluar el comportamiento esperado de la posición de la pelota a lo largo del tiempo en lanzamientos futuros, a continuación se presenta el gráfico correspondiente a la distribución predictiva a posteriori para distintos valores del tiempo.
+Con el objetivo de evaluar el comportamiento esperado de la posición de la pelota a lo largo del tiempo en lanzamientos futuros, a continuación se presenta el gráfico correspondiente a la distribución predictiva *a posteriori* a través del tiempo.
 
 ```{r}
 #| label: fig-10
-#| fig-cap: "Distribución predictiva a posteriori en el modelo 2" 
+#| fig-cap: "Altura media de la pelota *a priori* con bandas del 95% de credibilidad y de predicción (usando *priors* informativos)" 
 #| fig-pos: "H"
 y_pred_2 <- extract(modelo_2_fit, "y_rep2")$y_rep2
 yp_mean2 <- apply(y_pred_2, 2, mean)
@@ -812,48 +811,43 @@ ggplot(datos_planetax) +
   theme_bw()
 ```
 
-La @fig-10 muestra la distribución predictiva a posteriori de la posición de la pelota en el tiempo, según el modelo 2 ajustado. En este se visualiza la media de las predicciones (en azul), acompañada por las bandas de credibilidad del 95% para la distribución condicional de $\mu$ (en gris oscuro), y para las observaciones futuras (en gris claro).
+La @fig-10 muestra la distribución predictiva *a posteriori* de la posición de la pelota a través del tiempo, según el modelo 2 ajustado. En este se visualiza la media de las predicciones (en azul), acompañada por las bandas de credibilidad del 95% para la distribución condicional de $\mu$ (en gris oscuro), y para las observaciones futuras (en gris claro).
 
 Se observa que la mayoría de los puntos del Planeta X se encuentran dentro del intervalo de predicción del 95%, lo que indica que el modelo captura adecuadamente su variabilidad.
 
-Además, la comparación entre la banda de credibilidad para $\mu$ y la banda de predicción deja en evidencia cómo la incertidumbre aumenta al considerar la variabilidad inherente a nuevas observaciones. En conjunto, este análisis respalda la solidez del modelo 2 tanto en términos de ajuste como de capacidad predictiva.
+Además, la comparación entre la banda de credibilidad para $\mu$ y la banda de predicción deja en evidencia cómo la incertidumbre aumenta al considerar la variabilidad inherente a nuevas observaciones. En conjunto, este análisis respalda la solidez del modelo tanto en términos de ajuste como de capacidad predictiva.
 
 # Comparación de ambos modelos ajustados 
-Con el objetivo de analizar cómo varía la estimación del parámetro de gravedad bajo distintos supuestos previos, se comparan las distribuciones a posteriori obtenidas para dicho parámetro en dos modelos bayesianos diferentes. El Modelo 1 utiliza un prior uniforme, mientras que el Modelo 2 incorpora un prior más informativo. 
 
-El siguiente gráfico ilustra el posterior del parámetro asociado a la gravedad mediante boxplots, facilitando la comparación visual entre ambos modelos.
+Con el objetivo de analizar cómo varía la estimación del parámetro de gravedad bajo distintos supuestos previos, se comparan las distribuciones *a posteriori* obtenidas para dicho parámetro en los dos modelos.
 
 ```{r}
 #| label: fig-11
-#| fig-cap: "Distribución de la gravedad en ambos modelos" 
+#| fig-cap: "Distribuciones *a posteriori* de la gravedad del planeta X en ambos modelos" 
 #| fig-pos: "H"
 a_mod1 <- muestras_params_1l %>% filter(parametro == 'a') %>% pull(value)
 a_mod2 <- muestras_params_2l %>% filter(parametro == 'a') %>% pull(value)
 
 gravedad <- data.frame(modelo = rep(c("Modelo 1", "Modelo 2"), each = 4000),
                        a = c(a_mod1, a_mod2))
-#ggplot(gravedad) +
-#  geom_histogram(
-#    aes(x = a, y = after_stat(density)),
-#    bins = 30,
-#    fill = "#12BC81",
-#    color = "#12BC81"
-#  ) +
-#  facet_wrap( ~ modelo) +
-#  labs(x = "Gravedad", y = "Densidad") +
-#  theme_bw()
-
 ggplot(gravedad) +
-  geom_boxplot(aes(y = a, x = modelo), fill = "#12BC81") +
-  labs(y = "Gravedad", x = "Modelo") +
-  theme_bw()
+ geom_histogram(
+   aes(x = a, y = after_stat(density)),
+   bins = 30,
+   fill = "#12BC81",
+   color = "#12BC81"
+ ) +
+ facet_wrap( ~ modelo) +
+ labs(x = "Aceleración por la gravedad (a) en m/s", y = "Densidad") +
+ theme_bw()
 ```
 
 ```{r, include=F}
 quantile(a_mod1, c(0.025, 0.25, 0.75, 0.975))
 quantile(a_mod2, c(0.025, 0.25, 0.75, 0.975))
 ```
-A partir de este análisis visual, se observa que el Modelo 2 produce una distribución a posteriori más concentrada en torno al valor central, lo cual sugiere una mayor precisión en la estimación del parámetro de gravedad. En contraste, la distribución del Modelo 1 presenta una mayor dispersión, reflejando mayor incertidumbre. Esto sugiere que el prior utilizado en el modelo 2 no solo es más informativo, sino que también mejora la precisión de las estimaciones. Es decir, el uso de este prior conduce a una estimación más ajustada y confiable de la posición esperada de la pelota.
+
+A partir de este análisis visual, se observa que el Modelo 2 produce una distribución *a posteriori* más concentrada en torno al valor central, lo cual sugiere una mayor precisión en la estimación del parámetro de gravedad. En contraste, la distribución del Modelo 1 presenta una mayor dispersión, reflejando mayor incertidumbre. Esto sugiere que el prior utilizado en el modelo 2 no solo es más informativo, sino que también mejora la precisión de las estimaciones. Es decir, el uso de este prior conduce a una estimación más ajustada y confiable de la posición esperada de la pelota.
 
 # Estimación del tiempo de caída con distintas velocidades iniciales
 El objetivo de esta sección es estimar, utilizando ambos modelos ajustados, el tiempo promedio que tarda en caer la pelota de tenis cuando se lanza con dos velocidades iniciales diferentes: $6m/s$ y $12m/s$. Para ello, se plantea el problema en términos del valor esperado del modelo cuadrático:
@@ -992,7 +986,7 @@ $$
 \mu=0 \to \beta_0+\beta_1t+\beta_2t^2=0 \to t_{1,2}=\frac{-\beta_1\pm\sqrt{\beta_1^2-4\beta_0\beta_2}}{2\beta_2}
 $$
 
-Para incorporar las distintas velocidades iniciales en el modelo, se ajusta $\beta_1$ multiplicándola por la velocidad deseada ($6m/s$ o $12m/s$). Así, en lugar de un solo valor, se generan predicciones de $\mu$ utilizando las muestras a posteriori de los parámetros $(\beta_0, \beta_2)$ y reemplazando $\beta_1 = v_0$ en la expresión, siendo $v_0$ la velocidad inicial correspondiente.
+Para incorporar las distintas velocidades iniciales en el modelo, se ajusta $\beta_1$ multiplicándola por la velocidad deseada ($6m/s$ o $12m/s$). Así, en lugar de un solo valor, se generan predicciones de $\mu$ utilizando las muestras *a posteriori* de los parámetros $(\beta_0, \beta_2)$ y reemplazando $\beta_1 = v_0$ en la expresión, siendo $v_0$ la velocidad inicial correspondiente.
 
 Se evaluó $\mu$ sobre una grilla de tiempos y se calcularon, para cada modelo y cada velocidad:
 
@@ -1000,7 +994,7 @@ Se evaluó $\mu$ sobre una grilla de tiempos y se calcularon, para cada modelo y
 - Los intervalos de credibilidad del 95% para $\mu$,
 - Y el tiempo estimado en que $\mu = 0$, es decir, el tiempo de caída.
 
-Este procedimiento fue implementado mediante simulaciones sobre muestras a posteriori (4000 en total), y se construyeron gráficamente las bandas de incertidumbre para cada caso. Así, se obtuvo el posterior del tiempo de caída para cada combinación de modelo y velocidad.
+Este procedimiento fue implementado mediante simulaciones sobre muestras *a posteriori* (4000 en total), y se construyeron gráficamente las bandas de incertidumbre para cada caso. Así, se obtuvo el posterior del tiempo de caída para cada combinación de modelo y velocidad.
 
 Finalmente, se comparan los resultados para ambas velocidades iniciales y entre los dos modelos, con el objetivo de identificar cuál proporciona estimaciones más precisas y robustas. Esto se evalúa considerando la forma y amplitud de los intervalos de credibilidad, la estabilidad del tiempo estimado, y la coherencia con el comportamiento físico esperado del sistema.
 
@@ -1098,7 +1092,7 @@ g12ms.1 + g12ms.2
 ((g6ms.1 + g6ms.2) / (g12ms.1 + g12ms.2))
 ```
 
-Al analizar las distribuciones a posteriori del tiempo de caída estimado para dos velocidades iniciales bajo dos modelos diferentes, se observan diferencias claras tanto en la ubicación como en la dispersión de las predicciones.
+Al analizar las distribuciones *a posteriori* del tiempo de caída estimado para dos velocidades iniciales bajo dos modelos diferentes, se observan diferencias claras tanto en la ubicación como en la dispersión de las predicciones.
 
 Ambos modelos representan correctamente la relación física esperada: a mayor velocidad inicial, el objeto alcanza mayor altura y, en consecuencia, el tiempo de caída también se incrementa. Esto se refleja en que las distribuciones correspondientes a la mayor velocidad presentan un mayor tiempo de caída estimado.
 
@@ -1107,3 +1101,7 @@ Sin embargo, al comparar los dos modelos, se observa que el Modelo 1 genera dist
 En resumen, ambos modelos capturan adecuadamente la tendencia general esperada, pero difieren en la forma en que representan la incertidumbre asociada, debida a la creencia inicial utilizada. 
 
 # Conclusión final
+
+La selección de distribuciones *a priori* resulta fundamental en la inferencia bayesiana, pues condiciona tanto la incertidumbre sobre los parámetros como la coherencia de las predicciones. Cuando se emplean priors uniformes, la estimación depende casi exclusivamente de los datos observados, lo que suele generar distribuciones *a posteriori* amplias y de elevada incertidumbre. En cambio, la adopción de priors informados y con base física —provenientes de estudios terrestres y marcianos o de conocimiento técnico sobre la velocidad y altura de lanzamiento— restringe el espacio de parámetros a regiones plausibles y reduce notablemente la dispersión de las estimaciones.
+
+En el caso de la gravedad del Planeta X, el modelo con priors uniformes produjo un *posterior* de mayor incertidumbre que el modelo con priors informativos, ambas concentradas alrededor de 6 m/s², con intervalos de credibilidad más estrechos y simulaciones predictivas coherentes (sin trayectorias o errores extremos). Este contraste demuestra que la definición cuidadosa de los priors mejora la confiabilidad de las estimaciones y potencia la validez de los modelos bayesianos en entornos con información limitada.
