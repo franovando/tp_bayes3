@@ -3,7 +3,7 @@ title: " "
 format:
   pdf:
     pdf-engine: lualatex
-    geometry: a4paper
+    geometry: a4paper, top=2cm, bottom=2cm, left=2.5cm, right=2cm
     fontsize: 12pt
     lang: es
     fig-width: 5
@@ -89,7 +89,7 @@ library(patchwork)
 
 # Introducción
 
-En un contexto donde la exploración espacial se vuelve cada vez más relevante, contar con herramientas para comprender y estimar características fundamentales de otros planetas se vuelve clave. En esta oportunidad hemos sido convocados por la Agencia de Investigación Espacial para participar en un experimento crucial: medir la aceleración gravitatoria en un planeta recién descubierto, el Planeta X. La estrategia elegida para tal fin, aunque sencilla en apariencia, exige precisión: lanzar una pelota de tenis verticalmente hacia arriba y registrar detalladamente su trayectoria. Con la ayuda de una nave espacial de última generación y dispositivos tecnológicos capaces de captar con exactitud el movimiento del objeto
+En un contexto donde la exploración espacial se vuelve cada vez más relevante, contar con herramientas para comprender y estimar características fundamentales de otros planetas se vuelve clave. En esta oportunidad el equipo ha sido convocado por la Agencia de Investigación Espacial para participar en un experimento crucial: medir la aceleración gravitatoria en un planeta recién descubierto, el Planeta X. La estrategia elegida para tal fin, aunque sencilla en apariencia, exige precisión: lanzar una pelota de tenis verticalmente hacia arriba y registrar detalladamente su trayectoria. Con la ayuda de una nave espacial de última generación y dispositivos tecnológicos capaces de captar con exactitud el movimiento del objeto
 
 Antes de llegar al destino final, el entrenamiento incluyó ensayos previos en la Tierra y una parada intermedia en Marte. Estos pasos no solo sirvieron para familiarizarnos con los instrumentos y condiciones del experimento, sino también para recolectar información valiosa que luego podrá ser utilizada para enriquecer el análisis estadístico.
 
@@ -109,13 +109,12 @@ Con el objetivo de comenzar a explorar los datos recolectados durante el experim
 
 ```{r}
 #| label: fig-1
-#| fig-cap: "Altura de la pelota en el planeta X durante el experimento" 
+#| fig-cap: "Posición de la pelota en el planeta X durante el experimento" 
 ggplot(data = datos_planetax) + 
   geom_point(aes(x=t, y=x_t), color = "#12BC81") +
   labs(
-    x = expression(t),
-    y = expression(Y[t])
-       ) +
+    x = "Tiempo(segundos)",
+    y = "Altura(metros)") +
   theme_bw()
 ```
 
@@ -244,7 +243,7 @@ muestras_params_1 <- as.data.frame(extract(modelo_1_fit)) %>%
   select(c(beta0,beta1,beta2,sigma))
 ```
 
-En este modelo se utilizaron distribuciones *a priori* no informativas, permitiendo que los datos tengan un rol principal en la actualización de la distribución a posteriori. Por lo que, las distribuciones *a priori* utilizadas son para $\beta_0$, $\beta_1$ y $\beta_2$ distribuciones *a priori* uniformes y para $\sigma$ un *prior* uniforme, donde el plano se encuentra sobre los reales positivos.
+En este modelo se utilizaron distribuciones *a priori* no informativas, permitiendo que los datos tengan un rol principal en la actualización de la distribución *a posteriori*. Por lo que, las distribuciones *a priori* utilizadas son para $\beta_0$, $\beta_1$ y $\beta_2$ distribuciones *a priori* uniformes y para $\sigma$ un *prior* uniforme, donde el plano se encuentra sobre los reales positivos.
 
 Luego de ajustar el modelo bayesiano a los datos obtenidos del Planeta X, se generaron muestras de la distribución predictiva *a posteriori* de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datos, es decir se analizaron las distribuciones marginales *a posteriori* de los parámetros del modelo:
 
@@ -443,7 +442,7 @@ ggplot(datos_planetax) +
   )
 ```
 En la @fig-4 se observa que las bandas de credibilidad asociadas a la distribución predictiva
-a posteriori son bastantes angostas. Esto refleja que el modelo tiene una buena capacidad para predecir futuras observaciones. 
+*a posteriori* son bastantes angostas. Esto refleja que el modelo tiene una buena capacidad para predecir futuras observaciones. 
 
 
 ## Modelo con distribuciones *a priori* informativas
@@ -484,7 +483,7 @@ En conjunto, los datos sugieren que la gravedad en el Planeta X es más cercana 
 
 Dado que la pelota se lanza siempre desde la punta de la nave, a la altura inicial de la pelota, es decir $\beta_0$ se le asigna una creencia *a priori* normal centrada en 10, que es la altura de *The Bayesian* con desvío pequeño. 
 
-El lanzamiento de la pelota fue realizado por una persona entrenada de manera exigente, que desarrolló la capacidad de lanzar la pelota siempre con la misma velocidad inicial (aproximadamente 8 metros por segundo), por lo que $\beta_1$ se asume normal centrado en 8 y se le asigna un desvío relativamente chico confiando en el entrenamiento realizado.
+El lanzamiento de la pelota fue realizado por una persona entrenada de manera exigente, que desarrolló la capacidad de lanzar la pelota siempre con la misma velocidad inicial (aproximadamente 8 metros por segundo), por lo que $\beta_1$ se asume normal centrado en 8 y se le asigna un desvío relativamente pequeño confiando en el entrenamiento realizado.
 
 El parámetro $\beta_2$ está relacionado a la gravedad del planeta X, gracias a las pruebas realizadas en Marte ($a=3.73$) y en la Tierra ($a=9.807$) se plantea la fuerza gravitatoria en el planeta X como una normal centrada en el promedio de ellas, por lo que $\mu_{\beta_2}=-\frac12(\frac{a_{tierra}+a_{marte}}{2})=-\frac12(6.7685)\approx 4$, con un desvío lo suficientemente grande para modelar la incertidumbre sobre este parámetro, pero asignandole probabilidades casi nulas a valores positivos del mismo.
 
@@ -503,6 +502,7 @@ Y_{t_i} \mid \mu_{t_i}, \sigma &\sim \text{Normal}(\mu_{t_i}; \sigma^2) & i = 1,
 \sigma &\sim N^+(1.5)
 \end{aligned}
 $$ 
+
 ### Estructura del modelo expresada en Stan 
 
 ```{r estructura del modelo 2, echo=T}
@@ -586,6 +586,8 @@ priori <- data.frame(
 #| label: fig-6
 #| fig-cap: "Altura media de la pelota *a priori* con bandas del 95% de credibilidad" 
 #| fig-pos: "H" 
+#| fig-width: 4.5
+#| fig-height: 3
 
 # Resumen por tiempo
 summary_priori <- priori %>%
@@ -677,7 +679,7 @@ La distribución de $x_0$ se concentra alrededor de los 10 metros, con una dispe
 
 ### Análisis gráfico del modelo 
 
-A continuación, se presenta la curva de regresión estimada para la distribución condicional de $\mu_i$, acompañada por los datos observados en el Planeta X y las bandas de credibilidad del 95%. Esta visualización permite evaluar la incertidumbre asociada a las predicciones realizadas por el modelo 2, el cual fue ajustado con un prior más informativo.
+A continuación, se presenta la curva de regresión estimada para la distribución condicional de $\mu_i$, acompañada por los datos observados en el Planeta X y las bandas de credibilidad del 95%. Esta visualización permite evaluar la incertidumbre asociada a las predicciones realizadas por el modelo ajustado con un prior más informativo.
 
 ```{r, include=F}
 set.seed(5)
@@ -768,7 +770,7 @@ ggplot(datos_planetax) +
   theme_bw()
 ```
 
-La curva mostrada en la @fig-9 representa la posición esperada de la pelota a lo largo del tiempo, según el modelo ajustado. Se observa que está es decreciente, lo cual es consistente con el comportamiento físico de un objeto lanzado hacia arriba y afectado por la gravedad. Además, puede notarse que la mayoría de los puntos observados se encuentran contenidos dentro de las bandas de credibilidad del 95%, lo cual indica un buen ajuste del modelo a los datos empíricos.
+La curva mostrada en la @fig-9 representa la posición esperada de la pelota a lo largo del tiempo, según el modelo ajustado. Se observa que esta es decreciente, lo cual es consistente con el comportamiento físico de un objeto lanzado hacia arriba y afectado por la gravedad. Además, puede notarse que la mayoría de los puntos observados se encuentran contenidos dentro de las bandas de credibilidad del 95%, lo cual indica un buen ajuste del modelo a los datos empíricos.
 
 Con el objetivo de evaluar el comportamiento esperado de la posición de la pelota a lo largo del tiempo en lanzamientos futuros, a continuación se presenta el gráfico correspondiente a la distribución predictiva *a posteriori* a través del tiempo.
 
@@ -811,7 +813,7 @@ ggplot(datos_planetax) +
   theme_bw()
 ```
 
-La @fig-10 muestra la distribución predictiva *a posteriori* de la posición de la pelota a través del tiempo, según el modelo 2 ajustado. En este se visualiza la media de las predicciones (en azul), acompañada por las bandas de credibilidad del 95% para la distribución condicional de $\mu$ (en gris oscuro), y para las observaciones futuras (en gris claro).
+La @fig-10 muestra la distribución predictiva *a posteriori* de la posición de la pelota a través del tiempo, según el modelo ajustado. En este se visualiza la media de las predicciones (en azul), acompañada por las bandas de credibilidad del 95% para la distribución condicional de $\mu$ (en gris oscuro), y para las observaciones futuras (en gris claro).
 
 Se observa que la mayoría de los puntos del Planeta X se encuentran dentro del intervalo de predicción del 95%, lo que indica que el modelo captura adecuadamente su variabilidad.
 
@@ -847,7 +849,7 @@ quantile(a_mod1, c(0.025, 0.25, 0.75, 0.975))
 quantile(a_mod2, c(0.025, 0.25, 0.75, 0.975))
 ```
 
-A partir de este análisis visual, se observa que el Modelo 2 produce una distribución *a posteriori* más concentrada en torno al valor central, lo cual sugiere una mayor precisión en la estimación del parámetro de gravedad. En contraste, la distribución del Modelo 1 presenta una mayor dispersión, reflejando mayor incertidumbre. Esto sugiere que el prior utilizado en el modelo 2 no solo es más informativo, sino que también mejora la precisión de las estimaciones. Es decir, el uso de este prior conduce a una estimación más ajustada y confiable de la posición esperada de la pelota.
+A partir del análisis visual provisto en la @fig-11, se observa que el Modelo 2 produce una distribución *a posteriori* más concentrada en torno al valor central, lo cual sugiere una mayor precisión en la estimación del parámetro de gravedad. En contraste, la distribución del Modelo 1 presenta una mayor dispersión, reflejando mayor incertidumbre. Esto sugiere que el prior utilizado en el modelo 2 no solo es más informativo, sino que también mejora la precisión de las estimaciones. Es decir, el uso de este prior conduce a una estimación más ajustada y confiable de la posición esperada de la pelota.
 
 # Estimación del tiempo de caída con distintas velocidades iniciales
 El objetivo de esta sección es estimar, utilizando ambos modelos ajustados, el tiempo promedio que tarda en caer la pelota de tenis cuando se lanza con dos velocidades iniciales diferentes: $6m/s$ y $12m/s$. Para ello, se plantea el problema en términos del valor esperado del modelo cuadrático:
@@ -1000,7 +1002,7 @@ Finalmente, se comparan los resultados para ambas velocidades iniciales y entre 
 
 ```{r}
 #| label: fig-12
-#| fig-cap: "Distribución de la gravedad para ambas velocidades iniciales y entre \n los dos modelos" 
+#| fig-cap: "Distribución de la gravedad para una velocidad inicial\n de 6m/s y comparando los dos modelos" 
 #| fig-pos: "H"
 # Despeje de t de la ecuación
 t_caida_6ms.1 <- muestras_params_1 %>% 
@@ -1025,7 +1027,7 @@ g6ms.1 <- t_caida_6ms.1 %>% ggplot() +
     x = c(2, 5),
     y = c(0, 3.5)
   ) +
-  labs(title = "Modelo 1 - Velocidad inicial: 6 m/s",
+  labs(title = "Modelo 1",
        x = "Tiempo (segundos)", y = "Densidad") +
   theme_bw()
 
@@ -1040,10 +1042,17 @@ geom_histogram(
     x = c(2,5),
     y = c(0,3.5)   
        ) +
-  labs(title = "Modelo 2 - Velocidad inicial: 6 m/s",
+  labs(title = "Modelo 2",
        x = "Tiempo (segundos)", y = "Densidad") +
   theme_bw()
+g6ms.1 + g6ms.2
+```
 
+
+```{r}
+#| label: fig-13
+#| fig-cap: "Distribución de la gravedad para una velocidad inicial\n de 12m/s y comparando los dos modelos"
+#| fig-pos: "H"
 t_caida_12ms.1 <- muestras_params_1 %>% 
   mutate(
   t = (-12-sqrt(12^2-4*beta0*beta2))/(2*beta2)
@@ -1066,7 +1075,7 @@ geom_histogram(
     x = c(3,7),
     y = c(0,2)   
        ) +
-  labs(title = "Modelo 1 - Velocidad inicial: 12 m/s",
+  labs(title = "Modelo 1",
        x = "Tiempo (segundos)", y = "Densidad") +
   theme_bw()
 
@@ -1081,18 +1090,17 @@ geom_histogram(
     x = c(3,7),
     y = c(0,2)   
        ) +
-  labs(title = "Modelo 2 - Velocidad inicial: 12 m/s",
+  labs(title = "Modelo 2",
        x = "Tiempo (segundos)", y = "Densidad") +
   theme_bw()
 
-g6ms.1 + g6ms.2
 
 g12ms.1 + g12ms.2
 
-((g6ms.1 + g6ms.2) / (g12ms.1 + g12ms.2))
+#((g6ms.1 + g6ms.2) / (g12ms.1 + g12ms.2))
 ```
 
-Al analizar las distribuciones *a posteriori* del tiempo de caída estimado para dos velocidades iniciales bajo dos modelos diferentes, se observan diferencias claras tanto en la ubicación como en la dispersión de las predicciones.
+Al analizar las distribuciones *a posteriori* del tiempo de caída estimado para dos velocidades iniciales bajo dos modelos diferentes, tanto en la @fig-12 y en la @fig-13 se observan diferencias claras tanto en la ubicación como en la dispersión de las predicciones.
 
 Ambos modelos representan correctamente la relación física esperada: a mayor velocidad inicial, el objeto alcanza mayor altura y, en consecuencia, el tiempo de caída también se incrementa. Esto se refleja en que las distribuciones correspondientes a la mayor velocidad presentan un mayor tiempo de caída estimado.
 
