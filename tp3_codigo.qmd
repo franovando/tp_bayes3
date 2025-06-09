@@ -91,7 +91,7 @@ library(patchwork)
 
 En un contexto donde la exploración espacial se vuelve cada vez más relevante, contar con herramientas para comprender y estimar características fundamentales de otros planetas se vuelve clave. En esta oportunidad el equipo es convocado por la Agencia de Investigación Espacial para participar en un experimento crucial: medir la aceleración gravitatoria en un planeta recién descubierto, el Planeta X. La estrategia elegida para tal fin, aunque sencilla en apariencia, exige precisión: lanzar una pelota de tenis verticalmente hacia arriba y registrar detalladamente su trayectoria. Con la ayuda de una nave espacial de última generación y dispositivos tecnológicos capaces de captar con exactitud el movimiento del objeto
 
-Antes de llegar al destino final, el entrenamiento incluyó ensayos previos en la Tierra y una parada intermedia en Marte. Estos pasos no solo permite al equipo para familiarizarse con los instrumentos y condiciones del experimento, sino también para recolectar información valiosa que luego podrá ser utilizada para enriquecer el análisis estadístico.
+Antes de llegar al destino final, el entrenamiento incluyó ensayos previos en la Tierra y una parada intermedia en Marte. Estos pasos no solo permiten al equipo familiarizarse con los instrumentos y condiciones del experimento, sino también recolectar información valiosa que luego podrá ser utilizada para enriquecer el análisis estadístico.
 
 A lo largo del informe se presentan visualizaciones exploratorias, especificaciones de modelos, implementaciones en `Stan` y análisis de los resultados obtenidos. El objetivo central es obtener una estimación confiable de la gravedad en el Planeta X, así como evaluar el comportamiento predictivo del modelo en distintos escenarios de lanzamiento, contribuyendo así a resolver un interrogante que mantiene en vilo tanto a la comunidad científica como a la población general.
 
@@ -245,7 +245,7 @@ muestras_params_1 <- as.data.frame(extract(modelo_1_fit)) %>%
 
 En este modelo se utilizaron distribuciones *a priori* no informativas, permitiendo que los datos tengan un rol principal en la actualización de la distribución *a posteriori*. Por lo que, las distribuciones *a priori* utilizadas son para $\beta_0$, $\beta_1$ y $\beta_2$ distribuciones *a priori* uniformes y para $\sigma$ un *prior* uniforme, donde el plano se encuentra sobre los reales positivos.
 
-Luego de ajustar el modelo bayesiano a los datos obtenidos del Planeta X, se generan muestras de la distribución predictiva *a posteriori* de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datos, es decir se analizaron las distribuciones marginales *a posteriori* de los parámetros del modelo:
+Tras ajustar el modelo bayesiano a los datos obtenidos del Planeta X, se generan muestras de la distribución predictiva *a posteriori* de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datos, es decir se analizan las distribuciones marginales *a posteriori* de los parámetros del modelo:
 
 
 ```{r}
@@ -396,7 +396,7 @@ La curva sigue una trayectoria parabólica, lo cual es coherente con el
 movimiento de un objeto lanzado hacia arriba bajo la influencia de la 
 gravedad. Se observa que la mayoría de los puntos quedan contenidos dentro 
 de las bandas de credibilidad, lo que indica un buen ajuste del modelo a los 
-datos, aunque con un prior mas informativo esta estimación podría mejorar.
+datos, aunque con un prior más informativo esta estimación podría mejorar.
 
 Además, se incluyen bandas de predicción utilizando la distribución predictiva *a posteriori* para distintos valores de tiempo, lo que permite evaluar el 
 comportamiento esperado de la pelota en futuros lanzamientos.
@@ -483,13 +483,13 @@ En conjunto, los datos sugieren que la gravedad en el Planeta X es más cercana 
 
 Dado que la pelota se lanza siempre desde la punta de la nave, a la altura inicial de la pelota, es decir $\beta_0$ se le asigna una creencia *a priori* normal centrada en 10, que es la altura de *The Bayesian* con desvío pequeño. 
 
-El lanzamiento de la pelota fue realizado por una persona entrenada de manera exigente, que desarrolló la capacidad de lanzar la pelota siempre con la misma velocidad inicial (aproximadamente 8 metros por segundo), por lo que $\beta_1$ se asume normal centrado en 8 y se le asigna un desvío relativamente pequeño confiando en el entrenamiento realizado.
+El lanzamiento de la pelota es realizado por una persona entrenada de manera exigente, que desarrolló la capacidad de lanzar la pelota siempre con la misma velocidad inicial (aproximadamente 8 metros por segundo), por lo que $\beta_1$ se asume normal centrado en 8 y se le asigna un desvío relativamente pequeño confiando en el entrenamiento realizado.
 
-El parámetro $\beta_2$ está relacionado a la gravedad del planeta X, gracias a las pruebas realizadas en Marte ($a=3.73$) y en la Tierra ($a=9.807$) se plantea la fuerza gravitatoria en el planeta X como una normal centrada en el promedio de ellas, por lo que $\mu_{\beta_2}=-\frac12(\frac{a_{tierra}+a_{marte}}{2})=-\frac12(6.7685)\approx 4$, con un desvío lo suficientemente grande para modelar la incertidumbre sobre este parámetro, pero asignandole probabilidades casi nulas a valores positivos del mismo.
+El parámetro $\beta_2$ está relacionado a la gravedad del planeta X, gracias a las pruebas realizadas en Marte ($a=3.73$) y en la Tierra ($a=9.807$) se plantea la fuerza gravitatoria en el planeta X como una normal centrada en el promedio de ellas, por lo que $\mu_{\beta_2}=-\frac12(\frac{a_{tierra}+a_{marte}}{2})=-\frac12(6.7685)\approx 4$, con un desvío lo suficientemente grande para modelar la incertidumbre sobre este parámetro, pero asignándole probabilidades casi nulas a valores positivos del mismo.
 
-Por último, para el error del modelo, se eligió una distribución normal positiva de desvío también grande, dado que no se conoce nada sobre este parámetro, sólo que es positivo.
+Por último, para el error del modelo, se elige una distribución normal positiva de desvío también grande, dado que no se conoce nada sobre este parámetro, sólo que es positivo.
 
-De esta forma, el modelo lineal que será utilizado para analizar
+De esta forma, el modelo lineal que se utiliza para analizar
 los datos obtenidos en el experimento realizado en el Planeta X:
 
 $$
@@ -990,13 +990,13 @@ $$
 
 Para incorporar las distintas velocidades iniciales en el modelo, se ajusta $\beta_1$ multiplicándola por la velocidad deseada ($6m/s$ o $12m/s$). Así, en lugar de un solo valor, se generan predicciones de $\mu$ utilizando las muestras *a posteriori* de los parámetros $(\beta_0, \beta_2)$ y reemplazando $\beta_1 = v_0$ en la expresión, siendo $v_0$ la velocidad inicial correspondiente.
 
-Se evaluó $\mu$ sobre una grilla de tiempos y se calcularon, para cada modelo y cada velocidad:
+Se evalúa $\mu$ sobre una grilla de tiempos y se calcularon, para cada modelo y cada velocidad:
 
 - El valor promedio de $\mu$,
 - Los intervalos de credibilidad del 95% para $\mu$,
 - Y el tiempo estimado en que $\mu = 0$, es decir, el tiempo de caída.
 
-Este procedimiento fue implementado mediante simulaciones sobre muestras *a posteriori* (4000 en total), y se construyeron gráficamente las bandas de incertidumbre para cada caso. Así, se obtuvo el posterior del tiempo de caída para cada combinación de modelo y velocidad.
+Este procedimiento fue implementado mediante simulaciones sobre muestras *a posteriori* (4000 en total), y se construyen gráficamente las bandas de incertidumbre para cada caso. Así, se obtuvo el posterior del tiempo de caída para cada combinación de modelo y velocidad.
 
 Finalmente, se comparan los resultados para ambas velocidades iniciales y entre los dos modelos, con el objetivo de identificar cuál proporciona estimaciones más precisas y robustas. Esto se evalúa considerando la forma y amplitud de los intervalos de credibilidad, la estabilidad del tiempo estimado, y la coherencia con el comportamiento físico esperado del sistema.
 
