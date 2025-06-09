@@ -89,9 +89,9 @@ library(patchwork)
 
 # Introducción
 
-En un contexto donde la exploración espacial se vuelve cada vez más relevante, contar con herramientas para comprender y estimar características fundamentales de otros planetas se vuelve clave. En esta oportunidad el equipo ha sido convocado por la Agencia de Investigación Espacial para participar en un experimento crucial: medir la aceleración gravitatoria en un planeta recién descubierto, el Planeta X. La estrategia elegida para tal fin, aunque sencilla en apariencia, exige precisión: lanzar una pelota de tenis verticalmente hacia arriba y registrar detalladamente su trayectoria. Con la ayuda de una nave espacial de última generación y dispositivos tecnológicos capaces de captar con exactitud el movimiento del objeto
+En un contexto donde la exploración espacial se vuelve cada vez más relevante, contar con herramientas para comprender y estimar características fundamentales de otros planetas se vuelve clave. En esta oportunidad el equipo es convocado por la Agencia de Investigación Espacial para participar en un experimento crucial: medir la aceleración gravitatoria en un planeta recién descubierto, el Planeta X. La estrategia elegida para tal fin, aunque sencilla en apariencia, exige precisión: lanzar una pelota de tenis verticalmente hacia arriba y registrar detalladamente su trayectoria. Con la ayuda de una nave espacial de última generación y dispositivos tecnológicos capaces de captar con exactitud el movimiento del objeto
 
-Antes de llegar al destino final, el entrenamiento incluyó ensayos previos en la Tierra y una parada intermedia en Marte. Estos pasos no solo sirvieron para familiarizarnos con los instrumentos y condiciones del experimento, sino también para recolectar información valiosa que luego podrá ser utilizada para enriquecer el análisis estadístico.
+Antes de llegar al destino final, el entrenamiento incluyó ensayos previos en la Tierra y una parada intermedia en Marte. Estos pasos no solo permite al equipo para familiarizarse con los instrumentos y condiciones del experimento, sino también para recolectar información valiosa que luego podrá ser utilizada para enriquecer el análisis estadístico.
 
 A lo largo del informe se presentan visualizaciones exploratorias, especificaciones de modelos, implementaciones en `Stan` y análisis de los resultados obtenidos. El objetivo central es obtener una estimación confiable de la gravedad en el Planeta X, así como evaluar el comportamiento predictivo del modelo en distintos escenarios de lanzamiento, contribuyendo así a resolver un interrogante que mantiene en vilo tanto a la comunidad científica como a la población general.
 
@@ -128,7 +128,7 @@ Esta, vincula la posición del objeto en función del tiempo con
 parámetros clave del movimiento: la aceleración, la velocidad inicial y la 
 posición de partida.
 
-Se trabajará con un modelo lineal normal, donde los coeficientes del mismo
+Se trabaja con un modelo lineal normal, donde los coeficientes del mismo
 se pueden expresar en función de los parámetros de la ecuación cinemática:
 
 $$\begin{cases}
@@ -245,7 +245,7 @@ muestras_params_1 <- as.data.frame(extract(modelo_1_fit)) %>%
 
 En este modelo se utilizaron distribuciones *a priori* no informativas, permitiendo que los datos tengan un rol principal en la actualización de la distribución *a posteriori*. Por lo que, las distribuciones *a priori* utilizadas son para $\beta_0$, $\beta_1$ y $\beta_2$ distribuciones *a priori* uniformes y para $\sigma$ un *prior* uniforme, donde el plano se encuentra sobre los reales positivos.
 
-Luego de ajustar el modelo bayesiano a los datos obtenidos del Planeta X, se generaron muestras de la distribución predictiva *a posteriori* de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datos, es decir se analizaron las distribuciones marginales *a posteriori* de los parámetros del modelo:
+Luego de ajustar el modelo bayesiano a los datos obtenidos del Planeta X, se generan muestras de la distribución predictiva *a posteriori* de la respuesta ($y_{rep}$) a partir de los valores ajustados $\mu$ y el desvío estimado $\sigma$, lo cual permite realizar chequeos de ajuste (posterior predictive checks) para evaluar si el modelo reproduce adecuadamente los patrones observados en los datos, es decir se analizaron las distribuciones marginales *a posteriori* de los parámetros del modelo:
 
 
 ```{r}
